@@ -1,0 +1,10 @@
+{
+    "name": "xrpl-account-drill",
+    "private": true,
+    "scripts": {
+        "drill": "ts-node drill.ts"
+    },
+    "dependencies": {
+        "@bloxer/xrpl-account": "./../packages/xrpl/packages/account"
+    }
+}

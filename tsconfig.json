@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "ES2022",
+        "lib": ["dom", "ES2022", "ES6"],
+        "removeComments": true,
+        "allowSyntheticDefaultImports": true,
+        "strictPropertyInitialization": false,
+        "resolveJsonModule": true,
+        "sourceMap": true,
+        "baseUrl": "./",
+        "incremental": true,
+        "skipLibCheck": true,
+        "declaration": true
+    },
+    "exclude": ["**/.*/", "**/dist", "**/node_modules"]
+}

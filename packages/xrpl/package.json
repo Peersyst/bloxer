@@ -1,0 +1,20 @@
+{
+    "name": "@bloxer/xrpl",
+    "version": "1.0.0-alpha.0",
+    "description": "Lightweight and simple xrpl indexer framework based on custom events.",
+    "private": false,
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "node ../../scripts/build.js",
+        "prepublishOnly": "npm run build",
+        "publish": "npm run publish build",
+        "clean": "rm -rf dist"
+    },
+    "author": "Peersyst",
+    "license": "ISC",
+    "dependencies": {
+        "@bloxer/vanilla": "^1.0.0-alpha.0",
+        "xrpl": "^2.12.0-beta.0"
+    },
+    "sideEffects": false
+}

@@ -1,0 +1,11 @@
+{
+    "name": "ethers-typechain-contract-drill",
+    "private": true,
+    "scripts": {
+        "drill": "ts-node drill.ts"
+    },
+    "dependencies": {
+        "@bloxer/ethers-typechain-contract": "../../packages/ethers/packages/typechain-contract",
+        "@peersyst/xrp-evm-contracts": "^2.0.0-alpha.0"
+    }
+}
