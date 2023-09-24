@@ -329,6 +329,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     protected indexOptionsFromState(state: InheritedIndexerState<Generics["state"]>): IndexOptions {
         return {
             startingBlock: state.block,
+            previousTransaction: state.transaction,
         };
     }
 
