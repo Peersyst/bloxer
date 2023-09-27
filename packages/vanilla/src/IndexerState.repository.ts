@@ -3,13 +3,24 @@ import { getAttribute } from "./utils";
 import type { IndexerState } from "./types";
 import type { DeepPick, NestedKeys } from "./utils.types";
 
+export type IndexerStateRepositoryOptions = {
+    stateFilePath: string;
+    persistState: boolean;
+};
+
 export class IndexerStateRepository<State extends IndexerState = IndexerState> {
     /**
      * Allows to cache the state in memory.
      */
     private currentState: State;
 
-    constructor(private readonly stateFilePath: string) {}
+    private readonly stateFilePath: string;
+    private readonly persistState: boolean;
+
+    constructor({ stateFilePath, persistState }: IndexerStateRepositoryOptions) {
+        this.stateFilePath = stateFilePath;
+        this.persistState = persistState;
+    }
 
     /**
      * Reads the state from the file or returns an initial state if the file does not exist.
@@ -49,8 +60,10 @@ export class IndexerStateRepository<State extends IndexerState = IndexerState> {
      * @param state The state to set.
      */
     set(state: State): void {
-        this.writeState(state);
-        this.currentState = state;
+        if (this.persistState) {
+            this.writeState(state);
+            this.currentState = state;
+        }
     }
 
     /**
@@ -58,6 +71,8 @@ export class IndexerStateRepository<State extends IndexerState = IndexerState> {
      * @param state The partial state to set.
      */
     setPartial(state: Partial<State>): void {
-        this.set({ ...this.get(), ...state } as State);
+        if (this.persistState) {
+            this.set({ ...this.get(), ...state } as State);
+        }
     }
 }

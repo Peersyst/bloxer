@@ -26,6 +26,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
             prettyLogTimeZone: "local",
         },
         stateFilePath: ".bloxer-indexer.state.json",
+        persistState: true,
     };
     protected get defaultConfig(): DefaultExtendedIndexerConfig<InheritedIndexerConfig<Generics["config"]>> {
         // Children will get the right type
@@ -132,7 +133,10 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         this.overrideDefaultConfig(this.defaultConfig as DefaultExtendedIndexerConfig<InheritedIndexerConfig<Generics["config"]>>);
         this.config = deepmerge(this.defaultConfig, config) as typeof this.config;
         this.logger = new Logger(this.config.logger);
-        this.indexerStateRepository = new IndexerStateRepository(this.config.stateFilePath);
+        this.indexerStateRepository = new IndexerStateRepository({
+            stateFilePath: this.config.stateFilePath,
+            persistState: this.config.persistState,
+        });
 
         this.on = this.eventEmitter.on.bind(this.eventEmitter);
         this.emit = this.eventEmitter.emit.bind(this.eventEmitter);

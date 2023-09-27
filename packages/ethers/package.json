@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/ethers",
-    "version": "1.0.0-alpha.0",
+    "version": "0.0.0-alpha.0",
     "description": "Lightweight and simple ethers indexer framework based on custom events.",
     "private": false,
     "main": "src/index.ts",
@@ -13,7 +13,7 @@
     "author": "Peersyst",
     "license": "ISC",
     "dependencies": {
-        "@bloxer/vanilla": "^1.0.0-alpha.0",
+        "@bloxer/vanilla": "^0.0.0-alpha.0",
         "ethers": "5.7"
     },
     "sideEffects": false

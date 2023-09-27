@@ -40,6 +40,11 @@ export type IndexerConfig = {
      * @default "./bloxer.state.json"
      */
     stateFilePath?: string;
+    /**
+     * Whether to persist the state to the state file.
+     * @default true
+     */
+    persistState?: boolean;
 };
 
 export type IndexerDefaultConfig = Required<OmitRequired<IndexerConfig>>;
