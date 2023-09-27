@@ -1,6 +1,6 @@
 {
     "name": "ethers-typechain-contract-drill",
-    "private": true,
+    "private": false,
     "scripts": {
         "drill": "ts-node drill.ts"
     },

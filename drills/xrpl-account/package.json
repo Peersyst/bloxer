@@ -1,6 +1,6 @@
 {
     "name": "xrpl-account-drill",
-    "private": true,
+    "private": false,
     "scripts": {
         "drill": "ts-node drill.ts"
     },
