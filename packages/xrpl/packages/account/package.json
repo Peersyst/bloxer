@@ -7,7 +7,7 @@
     "scripts": {
         "build": "node ../../../../scripts/build.js",
         "prepublishOnly": "npm run build",
-        "publish": "npm run publish dist",
+        "publish": "npm publish dist",
         "clean": "rm -rf dist"
     },
     "author": "Peersyst",
