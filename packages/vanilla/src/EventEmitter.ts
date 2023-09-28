@@ -1,6 +1,6 @@
 import { EventEmitter as Emitter } from "events";
 
-export default class EventEmitter<EventsDef extends Record<string, (...args: any[]) => any>> {
+export class EventEmitter<EventsDef extends Record<string, (...args: any[]) => any>> {
     private emitter = new Emitter();
 
     emit<Event extends keyof EventsDef>(event: Event, ...args: Parameters<EventsDef[Event]>): boolean {

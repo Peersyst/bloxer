@@ -1,7 +1,7 @@
 import { Logger } from "tslog";
-import deepmerge, { withRetries } from "./utils";
+import { withRetries, deepmerge } from "./utils";
 import { IndexerStateRepository } from "./IndexerState.repository";
-import EventEmitter from "./EventEmitter";
+import { EventEmitter } from "./EventEmitter";
 import {
     IndexOptions,
     IndexerGenerics,

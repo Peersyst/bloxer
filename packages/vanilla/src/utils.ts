@@ -50,7 +50,7 @@ export interface DeepmergeOptions {
  * @param options Options
  * @returns The merged object
  */
-export default function deepmerge<T, Q>(target: T, source: Q, options: DeepmergeOptions = { clone: true }): T & Q {
+export function deepmerge<T, Q>(target: T, source: Q, options: DeepmergeOptions = { clone: true }): T & Q {
     const output = (options.clone ? { ...target } : target) as T & Q;
 
     if (isPlainObject(target) && isPlainObject(source)) {
