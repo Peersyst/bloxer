@@ -1,13 +1,14 @@
 {
     "name": "@bloxer/vanilla",
     "version": "0.0.0-alpha.0",
-    "description": "",
+    "description": "Lightweight and simple blockchain indexer framework based on custom events.",
     "private": false,
+    "access": "public",
     "main": "src/index.ts",
     "scripts": {
         "build": "node ../../scripts/build.js",
         "prepublishOnly": "npm run build",
-        "publish": "npm run publish build",
+        "publish": "npm run publish dist",
         "clean": "rm -rf dist"
     },
     "author": "Peersyst",
@@ -15,5 +16,6 @@
     "dependencies": {
         "tslog": "^4.9.2"
     },
-    "sideEffects": false
+    "sideEffects": false,
+    "gitHead": "d113a4dc95dc01581a4a3de6807b7e176f11edfe"
 }
