@@ -13,8 +13,6 @@ function main() {
         if (fse.existsSync(distPath)) fse.removeSync(distPath);
         fse.mkdirSync(distPath);
 
-        execSync("tsc");
-
         const packageDataString = fse.readFileSync(path.resolve(packagePath, "./package.json"), "utf8");
         const packageData = JSON.parse(packageDataString);
         delete packageData.devDependencies;
@@ -28,6 +26,8 @@ function main() {
         fse.copySync(buildPackagePath("./README.md"), buildDistPath("./README.md"));
 
         fse.copySync(buildPackagePath("./LICENSE"), buildDistPath("./LICENSE"));
+
+        execSync("tsc");
     } catch (e) {
         console.error(e);
         process.exit(1);
