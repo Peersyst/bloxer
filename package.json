@@ -10,7 +10,7 @@
         "flavour:impl": "node ./scripts/create-flavour-impl.js",
         "version": "lerna version --no-changelog --no-push --no-git-tag-version",
         "build": "lerna run --parallel build",
-        "publish": "lerna publish from-package --dist-tag latest --contents dist",
+        "release": "lerna publish from-package --dist-tag latest --contents dist",
         "lint": "eslint . --cache --report-unused-disable-directives --ext .js,.ts",
         "clean": "lerna run --parallel clean",
         "drill": "node ./scripts/drill.js"

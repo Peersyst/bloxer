@@ -1,20 +1,18 @@
 {
     "name": "@bloxer/ethers-typechain-contract",
-    "version": "0.0.0-alpha.1",
+    "version": "0.0.1-alpha.0",
     "description": "Lightweight and simple ethers typechain-contract indexer based on custom events.",
     "private": false,
     "main": "src/index.ts",
     "scripts": {
         "build": "node ../../../../scripts/build.js",
-        "prepublishOnly": "npm run build",
-        "publish": "npm publish dist",
         "clean": "rm -rf dist"
     },
     "author": "Peersyst",
     "license": "ISC",
     "dependencies": {
-        "@bloxer/ethers": "^0.0.0-alpha.1",
-        "@bloxer/vanilla": "^0.0.0-alpha.1",
+        "@bloxer/ethers": "^0.0.1-alpha.0",
+        "@bloxer/vanilla": "^0.0.1-alpha.0",
         "@ethersproject/providers": "^5.7.2",
         "ethers": "5.7"
     },
@@ -22,5 +20,5 @@
     "publishConfig": {
         "access": "public"
     },
-    "gitHead": "c88cabf518c766374d883a96a14f198a7ecba096"
+    "gitHead": "c09f478032ff4523ca9d08c703275381fafef8b6"
 }
