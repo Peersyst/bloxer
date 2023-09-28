@@ -95,27 +95,27 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     /**
      * Event listener for the indexer
      */
-    readonly on: typeof this.eventEmitter.on;
+    readonly on: EventEmitter<Generics["events"]>["on"];
 
     /**
      * Event emitter for the indexer
      */
-    protected readonly emit: typeof this.eventEmitter.emit;
+    protected readonly emit: EventEmitter<Generics["events"]>["emit"];
 
     /**
      * Gets the state or a nested property from the state.
      */
-    protected readonly getState: typeof this.indexerStateRepository.get;
+    protected readonly getState: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>["get"];
 
     /**
      * Sets the state.
      */
-    protected readonly setState: typeof this.indexerStateRepository.set;
+    protected readonly setState: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>["set"];
 
     /**
      * Sets a partial state.
      */
-    protected readonly setPartialState: typeof this.indexerStateRepository.setPartial;
+    protected readonly setPartialState: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>["setPartial"];
 
     /**
      * Requests the provider with retries

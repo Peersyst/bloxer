@@ -1,4 +1,4 @@
-import EventEmitter from "./EventEmitter";
+import { EventEmitter } from "./EventEmitter";
 
 export type ProviderEvents = {
     connected: () => void;
@@ -12,9 +12,9 @@ export type ProviderEvent = keyof ProviderEvents;
 export abstract class Provider<Request extends (...args: any[]) => Promise<any>> {
     private readonly eventEmitter = new EventEmitter<ProviderEvents>();
 
-    protected readonly emit: typeof this.eventEmitter.emit;
-    readonly on: typeof this.eventEmitter.on;
-    readonly off: typeof this.eventEmitter.off;
+    protected readonly emit: EventEmitter<ProviderEvents>["emit"];
+    readonly on: EventEmitter<ProviderEvents>["on"];
+    readonly off: EventEmitter<ProviderEvents>["off"];
 
     constructor(readonly wsUrl: string) {
         this.emit = this.eventEmitter.emit.bind(this.eventEmitter);
