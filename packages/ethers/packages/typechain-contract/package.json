@@ -3,7 +3,6 @@
     "version": "0.0.0-alpha.0",
     "description": "Lightweight and simple ethers typechain-contract indexer based on custom events.",
     "private": false,
-    "access": "public",
     "main": "src/index.ts",
     "scripts": {
         "build": "node ../../../../scripts/build.js",
@@ -20,5 +19,8 @@
         "ethers": "5.7"
     },
     "sideEffects": false,
+    "publishConfig": {
+        "access": "public"
+    },
     "gitHead": "d113a4dc95dc01581a4a3de6807b7e176f11edfe"
 }
