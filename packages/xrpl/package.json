@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/xrpl",
-    "version": "0.0.0-alpha.0",
+    "version": "0.0.0-alpha.1",
     "description": "Lightweight and simple xrpl indexer framework based on custom events.",
     "private": false,
     "main": "src/index.ts",
@@ -13,7 +13,7 @@
     "author": "Peersyst",
     "license": "ISC",
     "dependencies": {
-        "@bloxer/vanilla": "^0.0.0-alpha.0",
+        "@bloxer/vanilla": "^0.0.0-alpha.1",
         "xrpl": "^2.12.0-beta.0"
     },
     "sideEffects": false,
