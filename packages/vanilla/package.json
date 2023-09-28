@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/vanilla",
-    "version": "0.0.1-alpha.0",
+    "version": "0.0.1-alpha.1",
     "description": "Lightweight and simple blockchain indexer framework based on custom events.",
     "private": false,
     "main": "src/index.ts",
