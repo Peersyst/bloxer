@@ -248,7 +248,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         });
 
         this._provider.on("block", (block) => {
-            this.logger.info(`Latest block: ${block}`);
+            this.logger.debug(`Latest block: ${block}`);
             this.resolveLatestBlockPromise(block);
             this.resetLatestBlockPromise();
         });
