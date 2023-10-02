@@ -28,8 +28,8 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
         } as typeof this.defaultConfig);
     }
 
-    private _contract: TypechainContractInstance<GenericTypechainContractFactory>;
-    async getContract(): Promise<TypechainContractInstance<GenericTypechainContractFactory>> {
+    private _contract: TypechainContractInstance<ContractFactory>;
+    async getContract(): Promise<TypechainContractInstance<ContractFactory>> {
         if (!this._contract) {
             const provider = await this.getProvider();
             this._contract = await provider.getContract(this.contractFactory, this.contractAddress);
