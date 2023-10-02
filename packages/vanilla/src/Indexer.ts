@@ -217,7 +217,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     /**
      * Getter for the Provider
      */
-    protected async getProvider(): Promise<Generics["provider"]> {
+    async getProvider(): Promise<Generics["provider"]> {
         await this.providerPromise;
 
         return this._provider;

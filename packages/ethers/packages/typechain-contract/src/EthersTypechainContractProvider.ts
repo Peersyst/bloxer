@@ -6,7 +6,7 @@ export class EthersTypechainContractProvider extends EthersProvider {
         factory: ContractFactory,
         address: string,
     ): Promise<TypechainContractInstance<ContractFactory>> {
-        const signer = await this.provider.getSigner();
+        const signer = this.provider.getSigner();
         return factory.connect(address, signer) as TypechainContractInstance<ContractFactory>;
     }
 }
