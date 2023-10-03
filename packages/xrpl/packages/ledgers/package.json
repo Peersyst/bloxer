@@ -6,8 +6,6 @@
     "main": "src/index.ts",
     "scripts": {
         "build": "node ../../../../scripts/build.js",
-        "prepublishOnly": "npm run build",
-        "publish": "npm run publish build",
         "clean": "rm -rf dist"
     },
     "author": "Peersyst",
@@ -17,5 +15,8 @@
         "@bloxer/xrpl": "^0.0.1-alpha.6"
     },
     "sideEffects": false,
-    "gitHead": "08a10423519ef209e75f415b30dd63bad0b38b37"
+    "publishConfig": {
+        "access": "public"
+    },
+    "gitHead": "17d3eb97d548816aa514c2dc72533892e481958c"
 }
