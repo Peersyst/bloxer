@@ -1,0 +1,20 @@
+{
+    "name": "@bloxer/xrpl-ledgers",
+    "version": "0.0.1-alpha.0",
+    "description": "Lightweight and simple xrpl ledgers indexer based on custom events.",
+    "private": false,
+    "main": "src/index.ts",
+    "scripts": {
+        "build": "node ../../../../scripts/build.js",
+        "prepublishOnly": "npm run build",
+        "publish": "npm run publish build",
+        "clean": "rm -rf dist"
+    },
+    "author": "Peersyst",
+    "license": "ISC",
+    "dependencies": {
+        "@bloxer/vanilla": "^0.0.1-alpha.6",
+        "@bloxer/xrpl": "^0.0.1-alpha.6"
+    },
+    "sideEffects": false
+}

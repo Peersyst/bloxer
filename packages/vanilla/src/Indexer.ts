@@ -193,8 +193,11 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
             throw new Error("Node url must start with `wss://`, `ws://`, `wss+unix://`, or `ws+unix://`.");
         }
 
-        if (config.startingBlock && config.startingBlock < 0) {
-            throw new Error("Starting block must be greater than or equal to 0.");
+        if (
+            config.startingBlock &&
+            ((typeof config.startingBlock === "number" && config.startingBlock < 0) || config.startingBlock !== "latest")
+        ) {
+            throw new Error("Starting block must be greater than or equal to 0 or 'latest'.");
         }
 
         if (config.reconnectTimeout && config.reconnectTimeout < 0) {
@@ -350,13 +353,13 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         while (this.running) {
             this.latestBlock = await this.latestBlockPromise;
             if (nextBlock !== undefined ? nextBlock <= this.latestBlock : !state.block || state.block <= this.latestBlock) {
-                const indexingFrom = nextBlock ?? state.block ?? this.config.startingBlock ?? "genesys";
+                const fromBlock =
+                    nextBlock ?? state.block ?? (this.config.startingBlock === "latest" ? this.latestBlock : this.config.startingBlock);
+                const indexingFrom = fromBlock ?? "genesys";
                 this.logger.info(`Indexing from block ${indexingFrom} to latest`);
                 try {
                     nextBlock = await this.index(
-                        nextBlock !== undefined
-                            ? { startingBlock: nextBlock }
-                            : this.indexOptionsFromState({ block: state.block || this.config.startingBlock, ...state }),
+                        nextBlock !== undefined ? { startingBlock: nextBlock } : this.indexOptionsFromState({ block: fromBlock, ...state }),
                     );
                     this.setState({
                         block: nextBlock,
