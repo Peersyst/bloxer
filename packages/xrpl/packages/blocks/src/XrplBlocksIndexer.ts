@@ -4,7 +4,7 @@ import { XrplBlocksIndexerConfig, XrplBlocksIndexerState, XrplBlocksIndexerIndex
 
 export class XrplBlocksIndexer extends XrplIndexer<{
     provider: XrplProvider;
-    events: XrplBlocksIndexerEvents;
+    events: XrplBlocksIndexerEvents<XrplBlocksIndexerConfig["binary"]>;
     config: XrplBlocksIndexerConfig;
     state: XrplBlocksIndexerState;
     indexOptions: XrplBlocksIndexerIndexOptions;
@@ -36,7 +36,10 @@ export class XrplBlocksIndexer extends XrplIndexer<{
             });
 
             if (res.result.validated) {
-                this.emit("Ledger", res.result.ledger);
+                this.emit(
+                    "Ledger",
+                    res.result.ledger as Parameters<XrplBlocksIndexerEvents<XrplBlocksIndexerConfig["binary"]>["Ledger"]>[0],
+                );
                 this.setPartialState({ block: res.result.ledger_index, ledger: res.result.ledger });
                 ++currentBlock;
             }
