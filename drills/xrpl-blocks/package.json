@@ -1,0 +1,10 @@
+{
+    "name": "xrpl-blocks-drill",
+    "private": true,
+    "scripts": {
+        "drill": "ts-node drill.ts"
+    },
+    "dependencies": {
+        "@bloxer/xrpl-blocks": "../../packages/xrpl/packages/blocks"
+    }
+}
