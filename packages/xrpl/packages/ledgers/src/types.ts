@@ -1,6 +1,5 @@
 import { ExtendedIndexerState, ExtendedIndexOptions, ExtendedIndexerConfig } from "@bloxer/vanilla";
-import { LedgerBinary, LedgerRequest } from "xrpl";
-import { Ledger } from "xrpl/dist/npm/models/ledger";
+import { LedgerRequest } from "xrpl";
 
 export type XrplLedgersIndexerRequestOptions = Pick<
     LedgerRequest,
@@ -9,6 +8,6 @@ export type XrplLedgersIndexerRequestOptions = Pick<
 
 export type XrplLedgersIndexerConfig = ExtendedIndexerConfig<XrplLedgersIndexerRequestOptions>;
 
-export type XrplLedgersIndexerState = ExtendedIndexerState<{ ledger: Ledger | LedgerBinary }>;
+export type XrplLedgersIndexerState = ExtendedIndexerState<{}>;
 
 export type XrplLedgersIndexerIndexOptions = ExtendedIndexOptions<{}>;
