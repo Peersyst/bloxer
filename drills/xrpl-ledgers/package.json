@@ -5,6 +5,6 @@
         "drill": "ts-node drill.ts"
     },
     "dependencies": {
-        "@bloxer/xrpl-blocks": "../../packages/xrpl/packages/blocks"
+        "@bloxer/xrpl-ledgers": "../../packages/xrpl/packages/ledgers"
     }
 }

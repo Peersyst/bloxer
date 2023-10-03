@@ -1,7 +1,7 @@
-import { XrplBlocksIndexer } from "@bloxer/xrpl-blocks";
+import { XrplLedgersIndexer } from "@bloxer/xrpl-ledgers";
 
 async function drill() {
-    const indexer = new XrplBlocksIndexer({
+    const indexer = new XrplLedgersIndexer({
         wsUrl: "wss://s1.ripple.com/",
         stateFilePath: "state/.xrpl-blocks-indexer-state.json",
     });

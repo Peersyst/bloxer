@@ -1,3 +1,3 @@
-export * from "./XrplBlocksIndexer";
+export * from "./XrplLedgersIndexer";
 export * from "./types";
 export * from "./events";

@@ -1,7 +1,7 @@
 {
-    "name": "@bloxer/xrpl-blocks",
-    "version": "0.0.1-alpha.6",
-    "description": "Lightweight and simple xrpl blocks indexer based on custom events.",
+    "name": "@bloxer/xrpl-ledgers",
+    "version": "0.0.0",
+    "description": "Lightweight and simple xrpl ledgers indexer based on custom events.",
     "private": false,
     "main": "src/index.ts",
     "scripts": {

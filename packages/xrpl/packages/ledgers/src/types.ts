@@ -2,13 +2,13 @@ import { ExtendedIndexerState, ExtendedIndexOptions, ExtendedIndexerConfig } fro
 import { LedgerBinary, LedgerRequest } from "xrpl";
 import { Ledger } from "xrpl/dist/npm/models/ledger";
 
-export type XrplBlocksIndexerRequestOptions = Pick<
+export type XrplLedgersIndexerRequestOptions = Pick<
     LedgerRequest,
     "full" | "transactions" | "accounts" | "expand" | "owner_funds" | "binary" | "queue"
 >;
 
-export type XrplBlocksIndexerConfig = ExtendedIndexerConfig<{}>;
+export type XrplLedgersIndexerConfig = ExtendedIndexerConfig<XrplLedgersIndexerRequestOptions>;
 
-export type XrplBlocksIndexerState = ExtendedIndexerState<{ ledger: Ledger | LedgerBinary }>;
+export type XrplLedgersIndexerState = ExtendedIndexerState<{ ledger: Ledger | LedgerBinary }>;
 
-export type XrplBlocksIndexerIndexOptions = ExtendedIndexOptions<XrplBlocksIndexerRequestOptions>;
+export type XrplLedgersIndexerIndexOptions = ExtendedIndexOptions<{}>;
