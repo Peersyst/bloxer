@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/xrpl-account",
-    "version": "0.0.1-alpha.5",
+    "version": "0.0.1-alpha.6",
     "description": "Lightweight and simple xrpl account indexer based on custom events.",
     "private": false,
     "main": "src/index.ts",
@@ -11,8 +11,8 @@
     "author": "Peersyst",
     "license": "ISC",
     "dependencies": {
-        "@bloxer/vanilla": "^0.0.1-alpha.5",
-        "@bloxer/xrpl": "^0.0.1-alpha.5",
+        "@bloxer/vanilla": "^0.0.1-alpha.6",
+        "@bloxer/xrpl": "^0.0.1-alpha.6",
         "xrpl": "^2.12.0-beta.0"
     },
     "sideEffects": false,

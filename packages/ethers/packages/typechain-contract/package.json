@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/ethers-typechain-contract",
-    "version": "0.0.2-alpha.1",
+    "version": "0.0.2-alpha.2",
     "description": "Lightweight and simple ethers typechain-contract indexer based on custom events.",
     "private": false,
     "main": "src/index.ts",
@@ -11,8 +11,8 @@
     "author": "Peersyst",
     "license": "ISC",
     "dependencies": {
-        "@bloxer/ethers": "^0.0.1-alpha.5",
-        "@bloxer/vanilla": "^0.0.1-alpha.5",
+        "@bloxer/ethers": "^0.0.1-alpha.6",
+        "@bloxer/vanilla": "^0.0.1-alpha.6",
         "@ethersproject/providers": "^5.7.2",
         "ethers": "5.7"
     },
