@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/xrpl-ledgers",
-    "version": "0.0.1-alpha.0",
+    "version": "0.0.1-alpha.1",
     "description": "Lightweight and simple xrpl ledgers indexer based on custom events.",
     "private": false,
     "main": "src/index.ts",
@@ -17,5 +17,5 @@
         "@bloxer/xrpl": "^0.0.1-alpha.6"
     },
     "sideEffects": false,
-    "gitHead": "62e93cca1f4390a48192673c1d095c9d5761cd59"
+    "gitHead": "08a10423519ef209e75f415b30dd63bad0b38b37"
 }
