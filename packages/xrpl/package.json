@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/xrpl",
-    "version": "0.0.1-alpha.5",
+    "version": "0.0.1-alpha.6",
     "description": "Lightweight and simple xrpl indexer framework based on custom events.",
     "private": false,
     "main": "src/index.ts",
@@ -11,12 +11,12 @@
     "author": "Peersyst",
     "license": "ISC",
     "dependencies": {
-        "@bloxer/vanilla": "^0.0.1-alpha.5",
+        "@bloxer/vanilla": "^0.0.1-alpha.6",
         "xrpl": "^2.12.0-beta.0"
     },
     "sideEffects": false,
     "publishConfig": {
         "access": "public"
     },
-    "gitHead": "b1731c25a15575756f296b267dd62fe61304510d"
+    "gitHead": "fc337af75640624b77325644b54f4cad44d32f7d"
 }

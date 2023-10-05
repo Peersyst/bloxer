@@ -63,8 +63,6 @@ Lightweight and simple ${flavour} ${impl} indexer based on custom events.
             main: "src/index.ts",
             scripts: {
                 build: "node ../../../../scripts/build.js",
-                prepublishOnly: "npm run build",
-                publish: "npm run publish build",
                 clean: "rm -rf dist",
             },
             author: "Peersyst",
@@ -75,6 +73,9 @@ Lightweight and simple ${flavour} ${impl} indexer based on custom events.
             },
             devDependencies: {},
             sideEffects: false,
+            publishConfig: {
+                access: "public",
+            },
         };
         fse.writeFileSync(buildImplPath("package.json"), JSON.stringify(implPackage, null, 2), "utf8");
 

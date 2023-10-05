@@ -10,7 +10,7 @@ export type IndexerConfig = {
     /**
      * The starting block to index from.
      * */
-    startingBlock?: number | undefined;
+    startingBlock?: number | undefined | "latest";
     /**
      * The maximum interval in milliseconds to send a ping request to the node.
      * @default 5000
