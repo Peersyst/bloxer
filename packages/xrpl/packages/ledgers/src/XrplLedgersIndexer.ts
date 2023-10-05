@@ -24,7 +24,7 @@ export class XrplLedgersIndexer extends XrplIndexer<{
         super(config);
     }
 
-    async index({ startingBlock, endingBlock }: XrplLedgersIndexerIndexOptions): Promise<number> {
+    async index({ startingBlock, endingBlock = this.latestBlock }: XrplLedgersIndexerIndexOptions): Promise<number> {
         let currentBlock = startingBlock;
 
         while (currentBlock <= endingBlock) {
@@ -41,7 +41,7 @@ export class XrplLedgersIndexer extends XrplIndexer<{
             }
         }
 
-        const nextLedger = currentBlock + 1;
+        const nextLedger = currentBlock;
 
         return nextLedger;
     }
