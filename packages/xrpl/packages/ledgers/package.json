@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/xrpl-ledgers",
-    "version": "0.0.1-alpha.0",
+    "version": "0.0.1-alpha.1",
     "description": "Lightweight and simple xrpl ledgers indexer based on custom events.",
     "private": false,
     "main": "src/index.ts",
@@ -11,8 +11,8 @@
     "author": "Peersyst",
     "license": "ISC",
     "dependencies": {
-        "@bloxer/vanilla": "^0.0.1-alpha.6",
-        "@bloxer/xrpl": "^0.0.1-alpha.6"
+        "@bloxer/vanilla": "^0.0.1-alpha.7",
+        "@bloxer/xrpl": "^0.0.1-alpha.7"
     },
     "sideEffects": false,
     "publishConfig": {

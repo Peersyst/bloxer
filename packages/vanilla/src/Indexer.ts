@@ -195,7 +195,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
 
         if (
             config.startingBlock &&
-            ((typeof config.startingBlock === "number" && config.startingBlock < 0) || config.startingBlock !== "latest")
+            (typeof config.startingBlock === "number" ? config.startingBlock < 0 : config.startingBlock !== "latest")
         ) {
             throw new Error("Starting block must be greater than or equal to 0 or 'latest'.");
         }
