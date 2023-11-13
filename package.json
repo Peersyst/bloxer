@@ -30,5 +30,6 @@
         "ts-node": "^10.9.1",
         "typescript": "^5.2.2"
     },
-    "sideEffects": false
+    "sideEffects": false,
+    "version": "0.0.0"
 }
