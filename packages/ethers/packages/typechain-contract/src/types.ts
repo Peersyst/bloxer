@@ -6,6 +6,16 @@ export type EthersTypechainContractIndexerConfig = ExtendedIndexerConfig<{
      * @default 1000
      */
     blocksBatchSize?: number;
+    /**
+     * The timeout for throwing an error when fetching events.
+     * @default 5000
+     */
+    getEventsTimeout?: number;
+    /**
+     * The timeout for retrying to fetch events.
+     * @default 5000
+     */
+    getEventsRetryTimeout?: number;
 }>;
 
 export type EthersTypechainContractIndexerState = ExtendedIndexerState<{}>;

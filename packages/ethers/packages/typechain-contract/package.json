@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/ethers-typechain-contract",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "description": "Lightweight and simple ethers typechain-contract indexer based on custom events.",
     "private": false,
     "main": "src/index.ts",
