@@ -4,6 +4,8 @@ import { ethers } from "ethers";
 export class EthersProvider extends Provider<typeof ethers.providers.WebSocketProvider.prototype.send> {
     protected provider: ethers.providers.WebSocketProvider;
 
+    private providerIsConnected = false;
+
     request: typeof ethers.providers.WebSocketProvider.prototype.send = function () {
         throw new Error("EvmProvider not connected");
     };
@@ -33,9 +35,18 @@ export class EthersProvider extends Provider<typeof ethers.providers.WebSocketPr
     }
 
     setListeners(): void {
-        this.websocket.on("open", () => this.emit("connected"));
-        this.websocket.on("close", () => this.emit("disconnected"));
-        this.websocket.on("error", ((error) => this.emit("error", error)) as any); // Avoid throwing unhandled errors
+        this.websocket.on("open", () => {
+            this.providerIsConnected = true;
+            this.emit("connected");
+        });
+        this.websocket.on("close", () => {
+            this.providerIsConnected = false;
+            this.emit("disconnected");
+        });
+        this.websocket.on("error", ((error) => {
+            this.providerIsConnected = false;
+            this.emit("error", error);
+        }) as any); // Avoid throwing unhandled errors
     }
 
     async subscribeToLatestBlock(): Promise<void> {
@@ -51,6 +62,6 @@ export class EthersProvider extends Provider<typeof ethers.providers.WebSocketPr
     }
 
     isConnected(): boolean {
-        return this.provider._wsReady;
+        return this.providerIsConnected;
     }
 }

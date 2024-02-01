@@ -1,6 +1,6 @@
 {
     "name": "@bloxer/ethers",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Lightweight and simple ethers indexer framework based on custom events.",
     "private": false,
     "main": "src/index.ts",
