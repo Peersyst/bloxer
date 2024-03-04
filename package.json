@@ -1,5 +1,6 @@
 {
-    "name": "root",
+    "name": "bloxer",
+    "description": "Lightweight and simple blockchain indexer framework based on custom events.",
     "private": true,
     "workspaces": [
         "packages/*",
