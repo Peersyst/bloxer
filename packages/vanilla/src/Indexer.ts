@@ -277,6 +277,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
 
             if (this.reconnectRetries > this.config.maxReconnectAttempts) {
                 this.logger.error(`Could not reach ${this.config.wsUrl}`);
+                break;
             }
 
             this.logger.warn(`Reconnecting to ${this.config.wsUrl}... (${this.reconnectRetries})`);
