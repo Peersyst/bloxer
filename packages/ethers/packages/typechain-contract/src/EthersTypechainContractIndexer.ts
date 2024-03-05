@@ -67,8 +67,10 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
             let events: TypechainTypedEvent<any, any>[];
             try {
                 // Get contract inside the loop because the internal provider can change between reconnects.
+                this.logger.debug(`Getting contract`);
                 const contract = await this.getContract();
                 // Timeout needed because the `queryFilter` method hangs when the provider is disconnected.
+                this.logger.debug(`Getting events`);
                 events = await timeoutPromise(contract.queryFilter({}, fromBlock, toBlock), this.config.getEventsTimeout);
             } catch (e) {
                 this.logger.error(`Error while getting events from block ${fromBlock} to block ${toBlock}: ${e}`);
@@ -77,6 +79,7 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
                 continue;
             }
 
+            this.logger.debug(`Handling events`);
             for (const event of events) {
                 // If the previous transaction has been reached the following ones can be indexed. Otherwise, it still needs to be found.
                 if (reachedPreviousTransaction) {
