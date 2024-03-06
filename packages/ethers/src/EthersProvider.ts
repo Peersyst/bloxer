@@ -14,7 +14,11 @@ export class EthersProvider extends Provider<typeof ethers.providers.WebSocketPr
      * [ws](https://github.com/websockets/ws/tree/d8dd4852b81982fc0a6d633673968dff90985000) is used under the hood by ethers.
      * @see https://github.com/websockets/ws/blob/d8dd4852b81982fc0a6d633673968dff90985000/doc/ws.md
      */
-    get websocket(): { on: (event: string, listener: () => void) => void; off: (event: string, listener: () => void) => void } {
+    get websocket(): {
+        on: (event: string, listener: () => void) => void;
+        off: (event: string, listener: () => void) => void;
+        close: (code: number) => void;
+    } {
         // Types in ethers are not accurate
         return this.provider.websocket as any;
     }
@@ -57,8 +61,14 @@ export class EthersProvider extends Provider<typeof ethers.providers.WebSocketPr
         await Promise.resolve(this.provider.off("block", (block: number) => this.emit("block", block)));
     }
 
-    async disconnect(): Promise<void> {
-        await this.provider.destroy();
+    disconnect(): Promise<void> {
+        /**
+         * `providerIsConnected` is set to false in the `close` listener.
+         * Nevertheless, we set it here as well just in case
+         */
+        this.providerIsConnected = false;
+        this.provider.websocket.close(1000);
+        return Promise.resolve();
     }
 
     isConnected(): boolean {

@@ -270,13 +270,18 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      * Reconnects the provider
      */
     private async reconnectProvider(): Promise<void> {
+        this.logger.debug(`Reconnect to ${this.config.wsUrl}`);
+
         await this._provider.disconnect();
+
+        this.logger.debug(`Disconnected from ${this.config.wsUrl} before trying to reconnect`);
 
         while (!this._provider.isConnected()) {
             this.reconnectRetries++;
 
             if (this.reconnectRetries > this.config.maxReconnectAttempts) {
                 this.logger.error(`Could not reach ${this.config.wsUrl}`);
+                break;
             }
 
             this.logger.warn(`Reconnecting to ${this.config.wsUrl}... (${this.reconnectRetries})`);
