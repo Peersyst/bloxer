@@ -6,7 +6,6 @@ export abstract class XrplIndexer<Generics extends XrplIndexerGenerics> extends 
     provider: Generics["provider"] extends undefined ? XrplProvider : Generics["provider"];
     events: Generics["events"];
     config: Generics["config"];
-    state: Generics["state"];
     indexOptions: Generics["indexOptions"];
 }> {
     protected overrideDefaultConfig(defaultConfig: typeof this.defaultConfig): void {
@@ -16,7 +15,7 @@ export abstract class XrplIndexer<Generics extends XrplIndexerGenerics> extends 
             logger: {
                 name: "XrplIndexer",
             },
-            stateFilePath: "./.xrpl-indexer-state.json",
+            persistenceFilePath: "./.xrpl-indexer.json",
         } as typeof this.defaultConfig);
     }
 

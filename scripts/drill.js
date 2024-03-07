@@ -51,16 +51,13 @@ function main() {
             };
             fse.writeFileSync(buildDrillPath("package.json"), JSON.stringify(drillPackage, null, 2), "utf8");
 
-            // Create state folder
-            fse.mkdirSync(buildDrillPath("state"));
-
             // Create drill.ts
             const drill = `import { ${implIndexerName} } from "${implName}";
 
 async function drill() {
     const indexer = new ${implIndexerName}({
         wsUrl: "",
-        stateFilePath: "state/.${implSignature}-indexer-state.json",
+        persistenceFilePath: "persistence/.${implSignature}-indexer.json",
     });
     await indexer.run();
 }

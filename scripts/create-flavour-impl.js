@@ -18,7 +18,6 @@ function main() {
             implSignature,
             implIndexerName,
             implIndexerConfigName,
-            implIndexerStateName,
             implIndexOptionsName,
             implEventsName,
         } = buildFlavourImplementationNames(flavour, impl);
@@ -103,11 +102,9 @@ Lightweight and simple ${flavour} ${impl} indexer based on custom events.
         fse.mkdirSync(buildImplPath("src"));
 
         // Create types
-        const implTypes = `import { ExtendedIndexerState, ExtendedIndexOptions, ExtendedIndexerConfig } from "${vanillaPackage.name}"
+        const implTypes = `import { ExtendedIndexOptions, ExtendedIndexerConfig } from "${vanillaPackage.name}"
         
 export type ${implIndexerConfigName} = ExtendedIndexerConfig<{}>;
-
-export type ${implIndexerStateName} = ExtendedIndexerState<{}>;
 
 export type ${implIndexOptionsName} = ExtendedIndexOptions<{}>;
 `;
@@ -121,13 +118,12 @@ export type ${implIndexOptionsName} = ExtendedIndexOptions<{}>;
         // Create FlavourImplIndexer class
         const implIndexer = `import { ${flavourIndexerName}, ${flavourProviderName} } from "${flavourPackage.name}";
 import { ${implEventsName} } from "./events";
-import { ${implIndexerConfigName}, ${implIndexerStateName}, ${implIndexOptionsName} } from "./types";
+import { ${implIndexerConfigName}, ${implIndexOptionsName} } from "./types";
 
 export class ${implIndexerName} extends ${flavourIndexerName}<{
     provider: ${flavourProviderName};
     events: ${implEventsName};
     config: ${implIndexerConfigName};
-    state: ${implIndexerStateName};
     indexOptions: ${implIndexOptionsName};
 }> {
     protected overrideDefaultConfig(defaultConfig: typeof this.defaultConfig): void {
@@ -137,7 +133,7 @@ export class ${implIndexerName} extends ${flavourIndexerName}<{
             logger: {
                 name: "${implIndexerName}",
             },
-            stateFilePath: "./.${implSignature}-indexer-state.json",
+            persistenceFilePath: "./.${implSignature}-indexer.db",
         } as typeof this.defaultConfig);
     }
 

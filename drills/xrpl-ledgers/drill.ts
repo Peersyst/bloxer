@@ -3,9 +3,9 @@ import { XrplLedgersIndexer } from "@bloxer/xrpl-ledgers";
 async function drill() {
     const indexer = new XrplLedgersIndexer({
         wsUrl: "wss://s1.ripple.com/",
-        stateFilePath: "state/.xrpl-blocks-indexer-state.json",
+        persistenceFilePath: "persistence/.xrpl-blocks-indexer.db",
         startingBlock: 1000000,
-        persistState: false,
+        persist: false,
     });
     indexer.on("Ledger", (ledger) => {
         // eslint-disable-next-line no-console

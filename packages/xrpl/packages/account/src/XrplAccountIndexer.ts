@@ -1,6 +1,6 @@
 import { XrplIndexer, XrplProvider } from "@bloxer/xrpl";
 import { XrplAccountIndexerEvents } from "./events";
-import { XrplAccountIndexerConfig, XrplAccountIndexerState, XrplAccountIndexerIndexOptions } from "./types";
+import { XrplAccountIndexerConfig, XrplAccountIndexerIndexOptions } from "./types";
 import { isValidAddress } from "xrpl";
 import { AccountTransaction } from "./xrpl.types";
 
@@ -8,7 +8,6 @@ export class XrplAccountIndexer extends XrplIndexer<{
     provider: XrplProvider;
     events: XrplAccountIndexerEvents;
     config: XrplAccountIndexerConfig;
-    state: XrplAccountIndexerState;
     indexOptions: XrplAccountIndexerIndexOptions;
 }> {
     protected overrideDefaultConfig(defaultConfig: typeof this.defaultConfig): void {
@@ -18,7 +17,7 @@ export class XrplAccountIndexer extends XrplIndexer<{
             logger: {
                 name: "XrplAccountIndexer",
             },
-            stateFilePath: "./.xrpl-account-indexer-state.json",
+            persistenceFilePath: "./.xrpl-account-indexer.db",
             transactionsBatchSize: 10000,
         } as typeof this.defaultConfig);
     }
@@ -68,11 +67,11 @@ export class XrplAccountIndexer extends XrplIndexer<{
                             this.emit("Transaction", correctlyCastedAccountTx);
                             this.emit(tx.TransactionType, correctlyCastedAccountTx as AccountTransaction<any>);
                             // Save the last indexed transaction state
-                            this.setPartialState({
-                                transaction: tx.hash,
-                                block: tx.ledger_index,
-                            });
-                            // TODO: What happens if some handlers can treat the tx but others can't (Edge case)
+                            // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=9d8b6213e44d4c1e8f2c805565bb2486&pm=s
+                            // this.setPartialState({
+                            //     transaction: tx.hash,
+                            //     block: tx.ledger_index,
+                            // });
                         } else if (tx.hash === previousTransaction) {
                             reachedPreviousTransaction = true;
                         }

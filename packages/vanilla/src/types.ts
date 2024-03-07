@@ -1,4 +1,5 @@
-import { AnyObject, Inherited, OmitRequired } from "./utils.types";
+import { Inherited } from "./utils/types";
+import { AnyObject, OmitRequired } from "@swisstype/essential";
 import { Provider } from "./Provider";
 import { ISettingsParam as LoggerConfig } from "tslog";
 
@@ -36,34 +37,18 @@ export type IndexerConfig = {
      */
     logger?: LoggerConfig<any>;
     /**
-     * The path to the state file.
-     * @default "./bloxer.state.json"
+     * The path to the persistence file.
+     * @default "./bloxer.db"
      */
-    stateFilePath?: string;
+    persistenceFilePath?: string;
     /**
-     * Whether to persist the state to the state file.
+     * Whether to persist enable persistence.
      * @default true
      */
-    persistState?: boolean;
+    persist?: boolean;
 };
 
 export type IndexerDefaultConfig = Required<OmitRequired<IndexerConfig>>;
-
-export type IndexerState = {
-    /**
-     * The index of the last indexed block.
-     */
-    block?: number;
-    /**
-     * The hash of the last indexed transaction.
-     */
-    transaction?: string;
-};
-
-export type ExtendedIndexerState<ExtendedState extends AnyObject | undefined = {}> = (ExtendedState extends undefined
-    ? {}
-    : Partial<ExtendedState>) &
-    IndexerState;
 
 export type IndexOptions = {
     /**
@@ -96,8 +81,6 @@ export type DefaultExtendedIndexerConfig<ExtendedConfig extends ExtendedIndexerC
 // Does not work with generic config for some reason :(
 // export type DefaultExtendedIndexerConfig<ExtendedConfig extends ExtendedIndexerConfig> = Required<OmitRequired<ExtendedConfig>>;
 
-export type InheritedIndexerState<T> = Inherited<IndexerState, T>;
-
 export type InheritedIndexOptions<T> = Inherited<IndexOptions, T>;
 
 export type InheritedIndexerConfig<T> = Inherited<IndexerConfig, T>;
@@ -108,6 +91,5 @@ export type IndexerGenerics = {
     provider: Provider<any>;
     events: Record<string, (...args: any[]) => any>;
     config?: ExtendedIndexerConfig;
-    state?: ExtendedIndexerState;
     indexOptions?: ExtendedIndexOptions | undefined;
 };

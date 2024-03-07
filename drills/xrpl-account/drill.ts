@@ -3,8 +3,8 @@ import { XrplAccountIndexer } from "@bloxer/xrpl-account";
 async function drill() {
     const indexer = new XrplAccountIndexer("rEAjhZHotzo2jqPbjFpAEacgwc5XoUppgo", {
         wsUrl: "wss://s.devnet.rippletest.net:51233",
-        stateFilePath: "state/.xrpl-account-indexer-state.json",
-        persistState: false,
+        persistenceFilePath: "persistence/.xrpl-account-indexer.db",
+        persist: false,
         startingBlock: "latest",
     });
     indexer.on("XChainCreateBridge", (transaction) => {

@@ -1,10 +1,6 @@
 import { EthersIndexer } from "@bloxer/ethers";
 import { EthersTypechainContractIndexerEvents } from "./events";
-import {
-    EthersTypechainContractIndexerConfig,
-    EthersTypechainContractIndexerState,
-    EthersTypechainContractIndexerIndexOptions,
-} from "./types";
+import { EthersTypechainContractIndexerConfig, EthersTypechainContractIndexerIndexOptions } from "./types";
 import { EthersTypechainContractProvider } from "./EthersTypechainContractProvider";
 import {
     TypechainContractFactory as GenericTypechainContractFactory,
@@ -18,7 +14,6 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
     provider: EthersTypechainContractProvider;
     events: EthersTypechainContractIndexerEvents<ContractFactory>;
     config: EthersTypechainContractIndexerConfig;
-    state: EthersTypechainContractIndexerState;
     indexOptions: EthersTypechainContractIndexerIndexOptions;
 }> {
     protected overrideDefaultConfig(defaultConfig: typeof this.defaultConfig): void {
@@ -28,7 +23,7 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
             logger: {
                 name: "EthersTypechainContractIndexer",
             },
-            stateFilePath: "./.ethers-typechain-contract-indexer-state.json",
+            persistenceFilePath: "./.ethers-typechain-contract-indexer.db",
             blocksBatchSize: 1000,
             getEventsTimeout: 5000,
             getEventsRetryTimeout: 5000,
@@ -87,19 +82,20 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
                     (this.emit as any)("Event", event);
                     if (event.event) (this.emit as any)(event.event, event);
                     // Save the last indexed transaction state
-                    this.setPartialState({
-                        transaction: event.transactionHash,
-                        block: event.blockNumber,
-                    });
-                    // TODO: What happens if some handlers can treat the tx but others can't (Edge case)
+                    // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=9d8b6213e44d4c1e8f2c805565bb2486&pm=s
+                    // this.setPartialState({
+                    //     transaction: event.transactionHash,
+                    //     block: event.blockNumber,
+                    // });
                 } else if (event.transactionHash === previousTransaction) {
                     reachedPreviousTransaction = true;
                 }
             }
 
-            this.setState({
-                block: toBlock,
-            });
+            // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=9d8b6213e44d4c1e8f2c805565bb2486&pm=s
+            // this.setState({
+            //     block: toBlock,
+            // });
 
             this.logger.info(`Indexed from block ${fromBlock} to block ${toBlock}...`);
 

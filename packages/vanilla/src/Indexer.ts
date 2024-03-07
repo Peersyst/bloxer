@@ -1,17 +1,18 @@
 import { Logger } from "tslog";
 import { withRetries, deepmerge } from "./utils";
-import { IndexerStateRepository } from "./IndexerState.repository";
-import { EventEmitter } from "./EventEmitter";
+import { EventEmitter } from "./events/EventEmitter";
 import {
-    IndexOptions,
     IndexerGenerics,
     IndexerConfig,
     DefaultExtendedIndexerConfig,
     IndexerDefaultConfig,
     InheritedIndexerConfig,
-    InheritedIndexerState,
+    IndexOptions,
 } from "./types";
 import { ProviderConstructor } from "./Provider";
+import { DB } from "./db/interfaces";
+import { SQLiteDB } from "./db/SQLiteDB";
+import { LastEvent } from "./db/entities";
 
 export abstract class Indexer<Generics extends IndexerGenerics> {
     private _defaultConfig: IndexerDefaultConfig = {
@@ -25,8 +26,8 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
             prettyLogTemplate: "{{dd}}-{{mm}}-{{yyyy}} {{hh}}:{{MM}}:{{ss}}:{{ms}} {{name}} {{logLevelName}} ",
             prettyLogTimeZone: "local",
         },
-        stateFilePath: ".bloxer-indexer.state.json",
-        persistState: true,
+        persistenceFilePath: ".bloxer-indexer.db",
+        persist: true,
     };
     protected get defaultConfig(): DefaultExtendedIndexerConfig<InheritedIndexerConfig<Generics["config"]>> {
         // Children will get the right type
@@ -70,7 +71,10 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
 
     private _provider: Generics["provider"];
 
-    private readonly indexerStateRepository: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>;
+    /**
+     * Reference to the database.
+     */
+    private readonly db: DB;
 
     /**
      * The number of reconnect retries
@@ -103,21 +107,6 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     protected readonly emit: EventEmitter<Generics["events"]>["emit"];
 
     /**
-     * Gets the state or a nested property from the state.
-     */
-    protected readonly getState: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>["get"];
-
-    /**
-     * Sets the state.
-     */
-    protected readonly setState: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>["set"];
-
-    /**
-     * Sets a partial state.
-     */
-    protected readonly setPartialState: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>["setPartial"];
-
-    /**
      * Requests the provider with retries
      * Acts as a wrapper for provider.request
      */
@@ -133,16 +122,10 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         this.overrideDefaultConfig(this.defaultConfig as DefaultExtendedIndexerConfig<InheritedIndexerConfig<Generics["config"]>>);
         this.config = deepmerge(this.defaultConfig, config) as typeof this.config;
         this.logger = new Logger(this.config.logger);
-        this.indexerStateRepository = new IndexerStateRepository({
-            stateFilePath: this.config.stateFilePath,
-            persistState: this.config.persistState,
-        });
+        this.db = new SQLiteDB(this.config.persistenceFilePath);
 
         this.on = this.eventEmitter.on.bind(this.eventEmitter);
         this.emit = this.eventEmitter.emit.bind(this.eventEmitter);
-        this.getState = this.indexerStateRepository.get.bind(this.indexerStateRepository);
-        this.setState = this.indexerStateRepository.set.bind(this.indexerStateRepository);
-        this.setPartialState = this.indexerStateRepository.setPartial.bind(this.indexerStateRepository);
         this.request = async function request(...args: any[]) {
             return this.withRetries(
                 async () => {
@@ -334,46 +317,50 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     }
 
     /**
-     * Transforms the state into index options
-     * @param state The state
-     * @returns The index options
+     * Gets index options.
+     * @param nextBlock The next block.
+     * @param lastEvent The last event.
      */
-    protected indexOptionsFromState(state: InheritedIndexerState<Generics["state"]>): IndexOptions {
-        return {
-            startingBlock: state.block,
-            previousTransaction: state.transaction,
-        };
+    private getIndexOptions(nextBlock: number | undefined, lastEvent: LastEvent | undefined): IndexOptions {
+        if (nextBlock) {
+            return { startingBlock: nextBlock };
+        } else if (lastEvent) {
+            return { startingBlock: lastEvent.block, previousTransaction: lastEvent.hash };
+        } else {
+            return { startingBlock: this.config.startingBlock === "latest" ? this.latestBlock : this.config.startingBlock };
+        }
     }
 
     /**
      * Runs the indexer
      */
     async run(): Promise<void> {
-        await this.initializeProvider();
+        await Promise.all([this.db.open(), this.initializeProvider()]);
 
-        let state = this.getState() as InheritedIndexerState<Generics["state"]>;
-        let nextBlock;
+        // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
+        let lastEvent = {} as any;
+        let nextBlock: number | undefined;
         this.running = true;
 
         while (this.running) {
             this.latestBlock = await this.latestBlockPromise;
-            if (nextBlock !== undefined ? nextBlock <= this.latestBlock : !state.block || state.block <= this.latestBlock) {
-                const fromBlock =
-                    nextBlock ?? state.block ?? (this.config.startingBlock === "latest" ? this.latestBlock : this.config.startingBlock);
-                const indexingFrom = fromBlock ?? "genesys";
+
+            if (nextBlock !== undefined ? nextBlock <= this.latestBlock : !lastEvent.block || lastEvent.block <= this.latestBlock) {
+                const indexOptions = this.getIndexOptions(nextBlock, lastEvent);
+                const indexingFrom = indexOptions.startingBlock ?? "genesis";
+
                 this.logger.info(`Indexing from block ${indexingFrom} to latest`);
+
                 try {
-                    nextBlock = await this.index(
-                        nextBlock !== undefined ? { startingBlock: nextBlock } : this.indexOptionsFromState({ block: fromBlock, ...state }),
-                    );
-                    this.setState({
-                        block: nextBlock,
-                    } as InheritedIndexerState<Generics["state"]>);
+                    nextBlock = await this.index(indexOptions);
+
                     this.logger.info(`Indexed blocks from ${indexingFrom} to ${nextBlock - 1} (latest)`);
                 } catch (e) {
                     this.logger.error(`Indexing from block ${indexingFrom} to latest failed with error ${e}`);
                     this.logger.info(`Retrying indexing from block ${indexingFrom} to latest...`);
-                    state = this.getState() as InheritedIndexerState<Generics["state"]>;
+
+                    // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
+                    lastEvent = {};
                     nextBlock = undefined;
                 }
             }
@@ -386,8 +373,10 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     async stop(): Promise<void> {
         if (this.running) {
             this.logger.info("Stopping indexer...");
+
             this.running = false;
-            await this.unsubscribeFromLatestBlock();
+            await Promise.all([this.db.close(), this.unsubscribeFromLatestBlock()]);
+
             this.logger.info("Indexer stopped");
         } else {
             this.logger.warn("Indexer is already stopped");
