@@ -17,12 +17,7 @@ export class SQLBuilder<Entity extends EntityConstructor> {
 
         return `WHERE ${where
             .map((whereGroup) =>
-                Object.entries(
-                    this.entity.toRow(
-                        // Casted to `InstanceOf<Entity>`, `Entity.toRow` will have to handle possible undefined values
-                        whereGroup as InstanceOf<Entity>,
-                    ),
-                )
+                Object.entries(this.entity.toRow(whereGroup))
                     .map((key, value) => `${key} = ${value}`)
                     .join(" AND "),
             )
@@ -72,12 +67,7 @@ export class SQLBuilder<Entity extends EntityConstructor> {
     buildSetClause(data: Partial<InstanceOf<Entity>>, ...where: Partial<InstanceOf<Entity>>[]): string {
         return this.withWhereClause(
             `UPDATE ${this.entity.table}
-        SET ${Object.entries(
-            this.entity.toRow(
-                // Casted to `InstanceOf<Entity>`, `Entity.toRow` will have to handle possible undefined values
-                data as InstanceOf<Entity>,
-            ),
-        )
+        SET ${Object.entries(this.entity.toRow(data))
             .map((key, value) => `${key} = ${value}`)
             .join(", ")}`,
             ...where,
