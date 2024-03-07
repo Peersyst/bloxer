@@ -1,11 +1,39 @@
-import { EntityConstructor } from "../entities";
-import { InstanceOf } from "../../utils/types";
+import { EntityConstructor } from "../../../entities";
+import { InstanceOf } from "../../../../utils/types";
+import { AnyObject } from "@swisstype/essential";
 
 /**
- * SQL builder for an entity.
+ * SQL adapter used to adapt JS values to SQL for given entity.
  */
-export class SQLBuilder<Entity extends EntityConstructor> {
+export abstract class SQLAdapter<Entity extends EntityConstructor> {
     constructor(protected readonly entity: Entity) {}
+
+    /**
+     * Transforms a JS value to its SQL value.
+     * @param value The JS value.
+     * @returns The SQL value as string.
+     */
+    abstract valueToSql<T = any>(value: T): string;
+
+    /**
+     * Transforms an SQL value to its JS value.
+     * @param value The SQL value.
+     * @returns The JS value.
+     */
+    abstract sqlToValue<T = any>(sqlValue: any): T;
+
+    /**
+     * Transforms an SQL row to a JS record.
+     * @param row The SQL row.
+     * @returns The JS record.
+     */
+    sqlRowToRecord<T extends AnyObject>(sqlRow: AnyObject): T {
+        const record = {};
+        for (const [key, sqlValue] of Object.entries(sqlRow)) {
+            record[key] = this.sqlToValue(sqlValue);
+        }
+        return record as T;
+    }
 
     /**
      * Builds a where clause.
@@ -18,7 +46,7 @@ export class SQLBuilder<Entity extends EntityConstructor> {
         return `WHERE ${where
             .map((whereGroup) =>
                 Object.entries(this.entity.toRow(whereGroup))
-                    .map((key, value) => `${key} = ${value}`)
+                    .map((key, value) => `${key} = ${this.valueToSql(value)}`)
                     .join(" AND "),
             )
             .join(" OR ")}`;
@@ -54,8 +82,11 @@ export class SQLBuilder<Entity extends EntityConstructor> {
      * @returns The insert query.
      */
     buildInsert(data: InstanceOf<Entity>): string {
-        return `INSERT INTO ${this.entity.table} (${Object.keys(data).join(", ")})
-        VALUES (${Object.values(this.entity.toRow(data)).join(", ")})`;
+        const rowData = this.entity.toRow(data);
+        return `INSERT INTO ${this.entity.table} (${Object.keys(rowData).join(", ")})
+        VALUES (${Object.values(rowData)
+            .map((value) => this.valueToSql(value))
+            .join(", ")})`;
     }
 
     /**
@@ -68,7 +99,7 @@ export class SQLBuilder<Entity extends EntityConstructor> {
         return this.withWhereClause(
             `UPDATE ${this.entity.table}
         SET ${Object.entries(this.entity.toRow(data))
-            .map((key, value) => `${key} = ${value}`)
+            .map((key, value) => `${key} = ${this.valueToSql(value)}`)
             .join(", ")}`,
             ...where,
         );

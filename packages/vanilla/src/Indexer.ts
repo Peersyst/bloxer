@@ -12,7 +12,7 @@ import {
 import { ProviderConstructor } from "./Provider";
 import { DB } from "./db/interfaces";
 import { SQLiteDB } from "./db/SQLiteDB";
-import { LastEvent } from "./db/entities";
+import { LastEvent, PendingEvent } from "./db/entities";
 
 export abstract class Indexer<Generics extends IndexerGenerics> {
     private _defaultConfig: IndexerDefaultConfig = {
@@ -331,6 +331,24 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         }
     }
 
+    protected notifyEvent<Event extends keyof Generics["events"]>(
+        event: Event,
+        hash: string,
+        block: number,
+        ...data: Parameters<Generics["events"][Event]>
+    ): void {
+        // TODO: Check if the event is previous to the last event with a `reachedLastEvent` variable in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
+        const pendingEventsRepository = this.db.getRepository(PendingEvent);
+        pendingEventsRepository
+            .create(PendingEvent.fromEventNotification(event as string, hash, block, ...data))
+            .then(() => {
+                this.emit(event, ...data);
+            })
+            .catch((e) => {
+                this.logger.error(`Error while creating the pending event ${event as string} with hash ${hash} and block ${block}: ${e}`);
+            });
+    }
+
     /**
      * Runs the indexer
      */
@@ -338,14 +356,14 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         await Promise.all([this.db.open(), this.initializeProvider()]);
 
         // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
-        let lastEvent = {} as any;
+        let lastEvent = undefined as any;
         let nextBlock: number | undefined;
         this.running = true;
 
         while (this.running) {
             this.latestBlock = await this.latestBlockPromise;
 
-            if (nextBlock !== undefined ? nextBlock <= this.latestBlock : !lastEvent.block || lastEvent.block <= this.latestBlock) {
+            if (nextBlock !== undefined ? nextBlock <= this.latestBlock : !lastEvent || lastEvent.block <= this.latestBlock) {
                 const indexOptions = this.getIndexOptions(nextBlock, lastEvent);
                 const indexingFrom = indexOptions.startingBlock ?? "genesis";
 
@@ -360,7 +378,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
                     this.logger.info(`Retrying indexing from block ${indexingFrom} to latest...`);
 
                     // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
-                    lastEvent = {};
+                    lastEvent = undefined;
                     nextBlock = undefined;
                 }
             }

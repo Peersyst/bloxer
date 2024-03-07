@@ -36,6 +36,7 @@ export class XrplAccountIndexer extends XrplIndexer<{
     async index({ startingBlock, endingBlock, previousTransaction }: XrplAccountIndexerIndexOptions): Promise<number> {
         let marker;
         let lastIndexedLedger = startingBlock;
+        // TODO: Move to `Indexer` in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
         let reachedPreviousTransaction = !previousTransaction;
 
         do {
@@ -63,15 +64,14 @@ export class XrplAccountIndexer extends XrplIndexer<{
 
                         // If the previous transaction has been reached the following ones can be indexed. Otherwise, it still needs to be found.
                         if (reachedPreviousTransaction) {
-                            // Emit transaction events
-                            this.emit("Transaction", correctlyCastedAccountTx);
-                            this.emit(tx.TransactionType, correctlyCastedAccountTx as AccountTransaction<any>);
-                            // Save the last indexed transaction state
-                            // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=9d8b6213e44d4c1e8f2c805565bb2486&pm=s
-                            // this.setPartialState({
-                            //     transaction: tx.hash,
-                            //     block: tx.ledger_index,
-                            // });
+                            const hash = tx.hash;
+                            const block = tx.ledger_index;
+
+                            if (hash !== undefined && block !== undefined) {
+                                // Notify transaction events
+                                this.notifyEvent("Transaction", hash, block, correctlyCastedAccountTx);
+                                this.notifyEvent(tx.TransactionType, hash, block, correctlyCastedAccountTx as AccountTransaction<any>);
+                            }
                         } else if (tx.hash === previousTransaction) {
                             reachedPreviousTransaction = true;
                         }

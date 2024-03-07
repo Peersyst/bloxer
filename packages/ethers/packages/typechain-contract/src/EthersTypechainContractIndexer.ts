@@ -54,6 +54,7 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
     }: EthersTypechainContractIndexerIndexOptions): Promise<number> {
         let fromBlock = startingBlock;
         let toBlock = Math.min(startingBlock + this.config.blocksBatchSize, endingBlock);
+        // TODO: Move to `Indexer` in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
         let reachedPreviousTransaction = !previousTransaction;
 
         while (fromBlock <= endingBlock) {
@@ -79,23 +80,12 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
                 // If the previous transaction has been reached the following ones can be indexed. Otherwise, it still needs to be found.
                 if (reachedPreviousTransaction) {
                     // Emit event
-                    (this.emit as any)("Event", event);
-                    if (event.event) (this.emit as any)(event.event, event);
-                    // Save the last indexed transaction state
-                    // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=9d8b6213e44d4c1e8f2c805565bb2486&pm=s
-                    // this.setPartialState({
-                    //     transaction: event.transactionHash,
-                    //     block: event.blockNumber,
-                    // });
+                    // TODO: Events are not inferred correctly here. They are when using the indexer.
+                    if (event.event) (this.notifyEvent as any)(event.event, event.transactionHash, event.blockNumber, event);
                 } else if (event.transactionHash === previousTransaction) {
                     reachedPreviousTransaction = true;
                 }
             }
-
-            // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=9d8b6213e44d4c1e8f2c805565bb2486&pm=s
-            // this.setState({
-            //     block: toBlock,
-            // });
 
             this.logger.info(`Indexed from block ${fromBlock} to block ${toBlock}...`);
 
