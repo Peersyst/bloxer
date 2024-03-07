@@ -3,14 +3,18 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE pending_event (
-  hash      TEXT        PRIMARY KEY,
+  event     TEXT,
+  hash      TEXT,
   block     INTEGER     NOT NULL,
-  data      TEXT        NOT NULL
+  data      TEXT        NOT NULL,
+  PRIMARY KEY (event, hash)
 );
 
 CREATE TABLE last_event (
-  hash      TEXT        PRIMARY KEY,
-  block     INTEGER     NOT NULL
+  event     TEXT,
+  hash      TEXT,
+  block     INTEGER     NOT NULL,
+  PRIMARY KEY (event, hash)
 );
 
 --------------------------------------------------------------------------------
