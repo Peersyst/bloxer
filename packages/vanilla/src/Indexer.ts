@@ -17,6 +17,7 @@ import { LastEvent, PendingEvent } from "./db/entities";
 export abstract class Indexer<Generics extends IndexerGenerics> {
     private _defaultConfig: IndexerDefaultConfig = {
         startingBlock: 0,
+        endingBlock: "latest",
         reconnectTimeout: 5000,
         maxReconnectAttempts: 10,
         maxRequestRetries: 10,
@@ -80,21 +81,34 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      * The number of reconnect retries
      */
     private reconnectRetries = 0;
+
     /**
      * Provider (connection) promises
      */
     private resolveProviderPromise: () => void;
     private providerPromise: Promise<void>;
+
     /**
      * Block promises
      */
     private resolveLatestBlockPromise: (block: number) => void;
     private latestBlockPromise: Promise<number>;
     protected latestBlock: number;
+
     /**
      * Whether the indexer is running
      */
     running = false;
+
+    /**
+     * The last event processed before the indexer is started.
+     */
+    lastEvent: LastEvent | undefined;
+
+    /**
+     * Whether the last event has been reached and new events can be processed.
+     */
+    reachedLastEvent = false;
 
     /**
      * Event listener for the indexer
@@ -335,17 +349,57 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     }
 
     /**
+     * Gets the starting block.
+     * @returns The starting block.
+     */
+    private getStartingBlock(): number {
+        if (this.lastEvent) {
+            return this.lastEvent.block;
+        } else {
+            return this.config.startingBlock === "latest" ? this.latestBlock : this.config.startingBlock;
+        }
+    }
+
+    /**
+     * Gets the ending block.
+     * @returns The ending block.
+     */
+    private getEndingBlock(): number {
+        return this.config.endingBlock === "latest" ? this.latestBlock : this.config.endingBlock;
+    }
+
+    /**
      * Gets index options.
      * @param nextBlock The next block.
      * @param lastEvent The last event.
+     * @returns The index options.
      */
-    private getIndexOptions(nextBlock: number | undefined, lastEvent: LastEvent | undefined): IndexOptions {
-        if (nextBlock) {
-            return { startingBlock: nextBlock };
-        } else if (lastEvent) {
-            return { startingBlock: lastEvent.block, previousTransaction: lastEvent.hash };
+    private getIndexOptions(nextBlock: number | undefined): Required<IndexOptions> {
+        return {
+            startingBlock: nextBlock ?? this.getStartingBlock(),
+            endingBlock: this.getEndingBlock(),
+        };
+    }
+
+    /**
+     * Checks if indexer can index.
+     * The indexer can index if the staring block is less than or equal to the latest block.
+     * @param indexOptions The index options.
+     * @returns Whether the indexer can index.
+     */
+    private async canIndex({ startingBlock, endingBlock }: Required<IndexOptions>): Promise<boolean> {
+        if (this.lastEvent && this.lastEvent.block > this.latestBlock) {
+            this.logger.fatal(
+                `Last event block ${this.lastEvent.block} is greater than the latest block ${this.latestBlock}. This should never happen and could mean that the database data has not been stored correctly or is corrupted.`,
+            );
+            await this.stop();
+            return false;
+        } else if (startingBlock > endingBlock) {
+            this.logger.info(`Indexing to block ${endingBlock} completed.`);
+            await this.stop();
+            return false;
         } else {
-            return { startingBlock: this.config.startingBlock === "latest" ? this.latestBlock : this.config.startingBlock };
+            return true;
         }
     }
 
@@ -363,20 +417,67 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         ...data: Parameters<Generics["events"][Event]>
     ): void {
         if (this.config.persist) {
-            // TODO: Check if the event is previous to the last event with a `reachedLastEvent` variable in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
-            const pendingEventsRepository = this.db.getRepository(PendingEvent);
-            pendingEventsRepository
-                .create(PendingEvent.fromEventNotification(event as string, hash, block, ...data))
-                .then(() => {
-                    this.emit(event, ...data);
-                })
-                .catch((e) => {
-                    this.logger.error(
-                        `Error while creating the pending event ${event as string} with hash ${hash} and block ${block}: ${e}`,
-                    );
-                });
+            if (this.reachedLastEvent) {
+                this.db
+                    .getRepository(PendingEvent)
+                    .create(PendingEvent.fromEventNotification(event as string, hash, block, ...data))
+                    .then(() => {
+                        this.emit(event, ...data);
+                    })
+                    .catch((e) => {
+                        this.logger.error(
+                            `Error while creating the pending event ${event as string} with hash ${hash} and block ${block}: ${e}`,
+                        );
+                    });
+            } else {
+                // We can assert `this.lastEvent` since it has to be defined for `this.reachedLastEvent` to be false.
+                if (this.lastEvent!.event === event && this.lastEvent!.hash === hash) {
+                    this.reachedLastEvent = true;
+                }
+            }
         } else {
             this.emit(event, ...data);
+        }
+    }
+
+    /**
+     * Gets the last event processed.
+     * @returns The last event processed or undefined if there is no last event.
+     */
+    private getLastEvent(): Promise<LastEvent | undefined> {
+        return this.db.getRepository(LastEvent).findOne();
+    }
+
+    /**
+     * Gets the pending events.
+     * @returns The pending events.
+     */
+    private getPendingEvents(): Promise<PendingEvent[]> {
+        return this.db.getRepository(PendingEvent).findAll();
+    }
+
+    /**
+     * Recovers the last event processed.
+     * Sets `lastEvent` and `reachedLastEvent`.
+     */
+    private async recoverLastEvent(): Promise<void> {
+        if (this.config.persist) {
+            this.lastEvent = await this.getLastEvent();
+            this.reachedLastEvent = !this.lastEvent;
+        } else {
+            this.lastEvent = undefined;
+            this.reachedLastEvent = true;
+        }
+    }
+
+    /**
+     * Recovers the pending events and emits them.
+     */
+    private async recoverPendingEvents(): Promise<void> {
+        const pendingEvents = await this.getPendingEvents();
+
+        for (const pendingEvent of pendingEvents) {
+            this.emit(pendingEvent.event, ...(pendingEvent.data as Parameters<Generics["events"][string]>));
         }
     }
 
@@ -384,18 +485,29 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      * Runs the indexer
      */
     async run(): Promise<void> {
-        await Promise.all([this.openDB(), this.initializeProvider()]);
-
-        // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
-        let lastEvent = undefined as any;
-        let nextBlock: number | undefined;
         this.running = true;
+
+        try {
+            // Open db connection and initialize provider
+            await Promise.all([this.openDB(), this.initializeProvider()]);
+            // Recover the last event
+            await this.recoverLastEvent();
+            // Recover the pending events
+            await this.recoverPendingEvents();
+        } catch (e) {
+            this.logger.error(`Error while running the indexer: ${e}`);
+            await this.stop();
+        }
+
+        let nextBlock: number | undefined;
 
         while (this.running) {
             this.latestBlock = await this.latestBlockPromise;
 
-            if (nextBlock !== undefined ? nextBlock <= this.latestBlock : !lastEvent || lastEvent.block <= this.latestBlock) {
-                const indexOptions = this.getIndexOptions(nextBlock, lastEvent);
+            const indexOptions = this.getIndexOptions(nextBlock);
+            const canIndex = await this.canIndex(indexOptions);
+
+            if (canIndex) {
                 const indexingFrom = indexOptions.startingBlock ?? "genesis";
 
                 this.logger.info(`Indexing from block ${indexingFrom} to latest`);
@@ -407,10 +519,6 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
                 } catch (e) {
                     this.logger.error(`Indexing from block ${indexingFrom} to latest failed with error ${e}`);
                     this.logger.info(`Retrying indexing from block ${indexingFrom} to latest...`);
-
-                    // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
-                    lastEvent = undefined;
-                    nextBlock = undefined;
                 }
             }
         }
@@ -424,6 +532,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
             this.logger.info("Stopping indexer...");
 
             this.running = false;
+            // Close db connection and unsubscribe from latest block
             await Promise.all([this.closeDB(), this.unsubscribeFromLatestBlock()]);
 
             this.logger.info("Indexer stopped");

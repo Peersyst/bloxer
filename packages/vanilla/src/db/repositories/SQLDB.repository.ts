@@ -13,7 +13,7 @@ export abstract class SQLDBRepository<Entity extends EntityConstructor> extends 
         super(entity);
     }
 
-    async findOne(...where: Partial<InstanceOf<Entity>>[]): Promise<InstanceOf<Entity>> {
+    async findOne(...where: Partial<InstanceOf<Entity>>[]): Promise<InstanceOf<Entity> | undefined> {
         const row = await this.db.get(this.sqlAdapter.buildSelect(...where));
         return row ? this.entity.fromRow(this.sqlAdapter.sqlRowToRecord(row)) : undefined;
     }

@@ -47,15 +47,9 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
         super(EthersTypechainContractProvider, config);
     }
 
-    async index({
-        startingBlock,
-        endingBlock = this.latestBlock,
-        previousTransaction,
-    }: EthersTypechainContractIndexerIndexOptions): Promise<number> {
+    async index({ startingBlock, endingBlock }: EthersTypechainContractIndexerIndexOptions): Promise<number> {
         let fromBlock = startingBlock;
         let toBlock = Math.min(startingBlock + this.config.blocksBatchSize, endingBlock);
-        // TODO: Move to `Indexer` in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
-        let reachedPreviousTransaction = !previousTransaction;
 
         while (fromBlock <= endingBlock) {
             this.logger.info(`Indexing from block ${fromBlock} to block ${toBlock}...`);
@@ -77,14 +71,8 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
 
             this.logger.debug(`Handling events from contract ${this.contractAddress} and blocks ${fromBlock} to ${toBlock}...`);
             for (const event of events) {
-                // If the previous transaction has been reached the following ones can be indexed. Otherwise, it still needs to be found.
-                if (reachedPreviousTransaction) {
-                    // Emit event
-                    // TODO: Events are not inferred correctly here. They are when using the indexer.
-                    if (event.event) (this.notifyEvent as any)(event.event, event.transactionHash, event.blockNumber, event);
-                } else if (event.transactionHash === previousTransaction) {
-                    reachedPreviousTransaction = true;
-                }
+                // Events are not inferred correctly here. They are when using the indexer.
+                if (event.event) (this.notifyEvent as any)(event.event, event.transactionHash, event.blockNumber, event);
             }
 
             this.logger.info(`Indexed from block ${fromBlock} to block ${toBlock}...`);

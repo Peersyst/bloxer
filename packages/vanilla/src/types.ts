@@ -10,8 +10,14 @@ export type IndexerConfig = {
     wsUrl: string;
     /**
      * The starting block to index from.
-     * */
+     * @default 0
+     */
     startingBlock?: number | undefined | "latest";
+    /**
+     * The ending block to index to.
+     * @default "latest"
+     */
+    endingBlock?: number | undefined | "latest";
     /**
      * The maximum interval in milliseconds to send a ping request to the node.
      * @default 5000
@@ -61,10 +67,6 @@ export type IndexOptions = {
      * @default "The current block."
      */
     endingBlock?: number;
-    /**
-     * The hash of the previous transaction.
-     */
-    previousTransaction?: string;
 };
 
 export type ExtendedIndexOptions<ExtendedOptions extends AnyObject | undefined = {}> = (ExtendedOptions extends undefined

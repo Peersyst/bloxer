@@ -33,11 +33,9 @@ export class XrplAccountIndexer extends XrplIndexer<{
         super(config);
     }
 
-    async index({ startingBlock, endingBlock, previousTransaction }: XrplAccountIndexerIndexOptions): Promise<number> {
+    async index({ startingBlock, endingBlock }: XrplAccountIndexerIndexOptions): Promise<number> {
         let marker;
         let lastIndexedLedger = startingBlock;
-        // TODO: Move to `Indexer` in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
-        let reachedPreviousTransaction = !previousTransaction;
 
         do {
             const res = await this.request({
@@ -62,18 +60,13 @@ export class XrplAccountIndexer extends XrplIndexer<{
                     if (accountTx.validated && correctlyCastedAccountTx.meta.TransactionResult === "tesSUCCESS") {
                         const tx = correctlyCastedAccountTx.tx;
 
-                        // If the previous transaction has been reached the following ones can be indexed. Otherwise, it still needs to be found.
-                        if (reachedPreviousTransaction) {
-                            const hash = tx.hash;
-                            const block = tx.ledger_index;
+                        const hash = tx.hash;
+                        const block = tx.ledger_index;
 
-                            if (hash !== undefined && block !== undefined) {
-                                // Notify transaction events
-                                this.notifyEvent("Transaction", hash, block, correctlyCastedAccountTx);
-                                this.notifyEvent(tx.TransactionType, hash, block, correctlyCastedAccountTx as AccountTransaction<any>);
-                            }
-                        } else if (tx.hash === previousTransaction) {
-                            reachedPreviousTransaction = true;
+                        if (hash !== undefined && block !== undefined) {
+                            // Notify transaction events
+                            this.notifyEvent("Transaction", hash, block, correctlyCastedAccountTx);
+                            this.notifyEvent(tx.TransactionType, hash, block, correctlyCastedAccountTx as AccountTransaction<any>);
                         }
                     }
                 }

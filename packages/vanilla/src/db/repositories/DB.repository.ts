@@ -9,7 +9,7 @@ export abstract class DBRepository<Entity extends EntityConstructor> {
      * @param where The where clauses (will be joined with OR).
      * @returns The resource or undefined if no resource is found.
      */
-    abstract findOne(...where: Partial<InstanceOf<Entity>>[]): Promise<InstanceOf<Entity>>;
+    abstract findOne(...where: Partial<InstanceOf<Entity>>[]): Promise<InstanceOf<Entity> | undefined>;
 
     /**
      * Returns all resources from the DB matching the given wheres.

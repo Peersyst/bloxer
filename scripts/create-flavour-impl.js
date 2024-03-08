@@ -141,7 +141,7 @@ export class ${implIndexerName} extends ${flavourIndexerName}<{
         super(config);
     }
 
-    async index({ startingBlock, endingBlock, previousTransaction }: ${implIndexOptionsName}): Promise<number> {}
+    async index({ startingBlock, endingBlock }: ${implIndexOptionsName}): Promise<number> {}
 }
 `;
         fse.writeFileSync(buildImplSrcPath(`${implIndexerName}.ts`), implIndexer, "utf8");

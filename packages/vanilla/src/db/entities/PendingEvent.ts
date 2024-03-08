@@ -1,13 +1,12 @@
-import { AnyObject } from "@swisstype/essential";
 import { Entity } from "./Entity";
 
 export class PendingEvent extends Entity("pending_event") {
     event: string;
     hash: string;
     block: number;
-    data: AnyObject;
+    data: any[];
 
-    static fromEventNotification(event: string, hash: string, block: number, ...data: AnyObject[]): PendingEvent {
+    static fromEventNotification(event: string, hash: string, block: number, ...data: any[]): PendingEvent {
         return {
             event,
             hash,
