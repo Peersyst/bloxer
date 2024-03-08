@@ -4,6 +4,7 @@ import { EntityConstructor } from "../entities";
 export interface DB {
     /**
      * Opens the database connection.
+     * The database will be created if it does not exist.
      */
     open(): Promise<void>;
 

@@ -317,6 +317,24 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     }
 
     /**
+     * Opens the database connection if `persist` is true.
+     */
+    private async openDB(): Promise<void> {
+        if (this.config.persist) {
+            await this.db.open();
+        }
+    }
+
+    /**
+     * Closes the database connection if `persist` is true.
+     */
+    private async closeDB(): Promise<void> {
+        if (this.config.persist) {
+            await this.db.close();
+        }
+    }
+
+    /**
      * Gets index options.
      * @param nextBlock The next block.
      * @param lastEvent The last event.
@@ -331,29 +349,42 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         }
     }
 
+    /**
+     * Creates a pending event if `persist` is true and emits the event.
+     * @param event The event to emit.
+     * @param hash The hash of the event.
+     * @param block The block of the event.
+     * @param data The data of the event.
+     */
     protected notifyEvent<Event extends keyof Generics["events"]>(
         event: Event,
         hash: string,
         block: number,
         ...data: Parameters<Generics["events"][Event]>
     ): void {
-        // TODO: Check if the event is previous to the last event with a `reachedLastEvent` variable in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
-        const pendingEventsRepository = this.db.getRepository(PendingEvent);
-        pendingEventsRepository
-            .create(PendingEvent.fromEventNotification(event as string, hash, block, ...data))
-            .then(() => {
-                this.emit(event, ...data);
-            })
-            .catch((e) => {
-                this.logger.error(`Error while creating the pending event ${event as string} with hash ${hash} and block ${block}: ${e}`);
-            });
+        if (this.config.persist) {
+            // TODO: Check if the event is previous to the last event with a `reachedLastEvent` variable in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
+            const pendingEventsRepository = this.db.getRepository(PendingEvent);
+            pendingEventsRepository
+                .create(PendingEvent.fromEventNotification(event as string, hash, block, ...data))
+                .then(() => {
+                    this.emit(event, ...data);
+                })
+                .catch((e) => {
+                    this.logger.error(
+                        `Error while creating the pending event ${event as string} with hash ${hash} and block ${block}: ${e}`,
+                    );
+                });
+        } else {
+            this.emit(event, ...data);
+        }
     }
 
     /**
      * Runs the indexer
      */
     async run(): Promise<void> {
-        await Promise.all([this.db.open(), this.initializeProvider()]);
+        await Promise.all([this.openDB(), this.initializeProvider()]);
 
         // TODO: Implement with db in https://www.notion.so/1930f38fb1e94f82845dab04ac1caeca?v=64f1d5da841741cf9cb3b831e5b493e3&p=fbd10cc7c64f44deb868638b7ac89c86&pm=s
         let lastEvent = undefined as any;
@@ -393,7 +424,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
             this.logger.info("Stopping indexer...");
 
             this.running = false;
-            await Promise.all([this.db.close(), this.unsubscribeFromLatestBlock()]);
+            await Promise.all([this.closeDB(), this.unsubscribeFromLatestBlock()]);
 
             this.logger.info("Indexer stopped");
         } else {
