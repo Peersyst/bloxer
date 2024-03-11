@@ -435,12 +435,12 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     }
 
     /**
-     * Saves the next block to index by saving the last event only with the block.
+     * Saves the last indexed block by saving the last event only with the block + 1.
      * Uses a mutex to ensure that only one event is saved at a time.
      * @param block The block.
      * @returns An array containing the last event and the pending event.
      */
-    private async saveNextBlock(block: number): Promise<LastEvent | void> {
+    private async saveBlock(block: number): Promise<LastEvent | void> {
         return await this.eventMutex.runExclusive(
             async () => await this.db.getRepository(LastEvent).updateOrCreate(new LastEvent(block + 1)),
         );
@@ -492,7 +492,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
              * We assume that the last event is reached.
              * A new block can never be processed if the last event is not reached.
              */
-            this.saveNextBlock(block).catch((e) => {
+            this.saveBlock(block).catch((e) => {
                 this.logger.error(`Error while saving the last block processed ${block}: ${e}`);
             });
         }
