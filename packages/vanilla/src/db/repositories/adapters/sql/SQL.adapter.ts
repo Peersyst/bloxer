@@ -46,7 +46,7 @@ export abstract class SQLAdapter<Entity extends EntityConstructor> {
         return `WHERE ${where
             .map((whereGroup) =>
                 Object.entries(this.entity.toRow(whereGroup))
-                    .map((key, value) => `${key} = ${this.valueToSql(value)}`)
+                    .map(([key, value]) => `${key} = ${this.valueToSql(value)}`)
                     .join(" AND "),
             )
             .join(" OR ")}`;

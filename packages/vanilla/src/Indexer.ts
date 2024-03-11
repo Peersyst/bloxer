@@ -541,6 +541,21 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     }
 
     /**
+     * Marks an event as done by deleting the pending event.
+     * **This method should be called after processing an event.**
+     * If not called, the event will persist in the database and will be processed again after a restart.
+     * Does nothing when called with `persist` set to `false`.
+     * @param event The event.
+     * @param hash The hash of the event.
+     * @param block The block of the event.
+     */
+    eventDone<Event extends keyof Generics["events"]>(event: Event, hash: string, block: number): void {
+        if (this.config.persist) {
+            this.db.getRepository(PendingEvent).delete({ event: event as string, hash, block });
+        }
+    }
+
+    /**
      * Runs the indexer
      */
     async run(): Promise<void> {
