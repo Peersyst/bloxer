@@ -6,15 +6,21 @@ import { Entity } from "./Entity";
  * - Only `block`: Stores the upcoming block to be processed.
  * - `block`, `event`, `hash`: Stores the last event processed. The indexer will start indexing from the next event.
  */
-export class LastEvent extends Entity("last_event") {
+export class LastEvent<Event extends string = string> extends Entity("last_event") {
+    /**
+     * The block of the event.
+     */
     block: number;
-    event?: string;
+    /**
+     * The event name.
+     */
+    event?: Event;
+    /**
+     * The hash of the event. Normally the transaction hash.
+     */
     hash?: string;
-
-    constructor(block: number, event?: string, hash?: string) {
-        super();
-        this.block = block;
-        this.event = event;
-        this.hash = hash;
-    }
+    /**
+     * The optional index of the event.
+     */
+    i?: number;
 }

@@ -65,8 +65,13 @@ export class XrplAccountIndexer extends XrplIndexer<{
 
                         if (hash !== undefined && block !== undefined) {
                             // Notify transaction events
-                            this.notifyEvent("Transaction", hash, block, correctlyCastedAccountTx);
-                            this.notifyEvent(tx.TransactionType, hash, block, correctlyCastedAccountTx as AccountTransaction<any>);
+                            this.notifyEvent({ event: "Transaction", hash, block, data: [correctlyCastedAccountTx] });
+                            this.notifyEvent({
+                                event: tx.TransactionType,
+                                hash,
+                                block,
+                                data: [correctlyCastedAccountTx as AccountTransaction<any>],
+                            });
                         }
                     }
                 }

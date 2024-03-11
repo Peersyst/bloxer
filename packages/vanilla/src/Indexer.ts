@@ -16,6 +16,9 @@ import { LastEvent, PendingEvent } from "./db/entities";
 import { Mutex } from "async-mutex";
 
 export abstract class Indexer<Generics extends IndexerGenerics> {
+    /**
+     * The default config of the indexer.
+     */
     private _defaultConfig: IndexerDefaultConfig = {
         startingBlock: 0,
         endingBlock: "latest",
@@ -59,6 +62,9 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         }
     }
 
+    /**
+     * The config of the indexer.
+     */
     private _config: Required<InheritedIndexerConfig<Generics["config"]>>;
     protected get config(): Required<InheritedIndexerConfig<Generics["config"]>> {
         return this._config;
@@ -67,10 +73,23 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         this._config = value;
     }
 
+    /**
+     * The logger of the indexer.
+     */
     readonly logger: Logger<any>;
 
+    /**
+     * The event emitter of the indexer.
+     */
     private readonly eventEmitter = new EventEmitter<Generics["events"]>();
+    /**
+     * Contains the active event listeners for each event. That is, the subscribed events using the `on` method.
+     */
+    private readonly activeEventListeners: Partial<Record<keyof Generics["events"], number>> = {};
 
+    /**
+     * Reference to the provider.
+     */
     private _provider: Generics["provider"];
 
     /**
@@ -118,16 +137,6 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     reachedLastEvent = false;
 
     /**
-     * Event listener for the indexer
-     */
-    readonly on: EventEmitter<Generics["events"]>["on"];
-
-    /**
-     * Event emitter for the indexer
-     */
-    protected readonly emit: EventEmitter<Generics["events"]>["emit"];
-
-    /**
      * Requests the provider with retries
      * Acts as a wrapper for provider.request
      */
@@ -145,8 +154,6 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         this.logger = new Logger(this.config.logger);
         this.db = new SQLiteDB(this.config.persistenceFilePath);
 
-        this.on = this.eventEmitter.on.bind(this.eventEmitter);
-        this.emit = this.eventEmitter.emit.bind(this.eventEmitter);
         this.request = async function request(...args: any[]) {
             return this.withRetries(
                 async () => {
@@ -414,22 +421,20 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      * Saves a new pending event by saving the last event and creating a new pending event.
      * Uses a mutex to ensure that only one pending event is saved at a time.
      * @param event The event to emit.
-     * @param hash The hash of the event.
-     * @param block The block of the event.
-     * @param data The data of the event.
      * @returns An array containing the last event and the pending event.
      */
-    private async saveNewPendingEvent<Event extends keyof Generics["events"]>(
-        event: Event,
-        hash: string,
-        block: number,
-        ...data: Parameters<Generics["events"][Event]>
-    ): Promise<[LastEvent | void, PendingEvent]> {
+    private async saveNewPendingEvent<Event extends string & keyof Generics["events"]>({
+        event,
+        hash,
+        i = 0,
+        block,
+        data,
+    }: PendingEvent<Event, Parameters<Generics["events"][Event]>>): Promise<[LastEvent | void, PendingEvent]> {
         return await this.eventMutex.runExclusive(
             async () =>
                 await Promise.all([
-                    this.db.getRepository(LastEvent).updateOrCreate(new LastEvent(block, event as string, hash)),
-                    this.db.getRepository(PendingEvent).create(new PendingEvent(event as string, hash, block, ...data)),
+                    this.db.getRepository(LastEvent).updateOrCreate({ block, event, hash, i }),
+                    this.db.getRepository(PendingEvent).create({ event, hash, i, block, data }),
                 ]),
         );
     }
@@ -442,42 +447,43 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      */
     private async saveBlock(block: number): Promise<LastEvent | void> {
         return await this.eventMutex.runExclusive(
-            async () => await this.db.getRepository(LastEvent).updateOrCreate(new LastEvent(block + 1)),
+            async () =>
+                await this.db.getRepository(LastEvent).updateOrCreate({ block: block + 1, event: undefined, hash: undefined, i: 0 }),
         );
     }
 
     /**
      * Creates a pending event if `persist` is true and emits the event.
      * @param event The event to emit.
-     * @param hash The hash of the event.
-     * @param block The block of the event.
-     * @param data The data of the event.
      */
-    protected notifyEvent<Event extends keyof Generics["events"]>(
-        event: Event,
-        hash: string,
-        block: number,
-        ...data: Parameters<Generics["events"][Event]>
-    ): void {
-        if (this.config.persist) {
-            if (this.reachedLastEvent) {
-                this.saveNewPendingEvent(event, hash, block, ...data)
-                    .then(() => {
-                        this.emit(event, ...data);
-                    })
-                    .catch((e) => {
-                        this.logger.error(
-                            `Error while saving new pending event ${event as string} with hash ${hash} and block ${block}: ${e}`,
-                        );
-                    });
-            } else {
-                // We can assert `this.lastEvent` since it has to be defined for `this.reachedLastEvent` to be false.
-                if (this.lastEvent!.event === event && this.lastEvent!.hash === hash) {
-                    this.reachedLastEvent = true;
+    protected notifyEvent<Event extends string & keyof Generics["events"]>({
+        event,
+        hash,
+        i,
+        block,
+        data,
+    }: PendingEvent<Event, Parameters<Generics["events"][Event]>>): void {
+        if (this.activeEventListeners[event]) {
+            if (this.config.persist) {
+                if (this.reachedLastEvent) {
+                    this.saveNewPendingEvent({ event, hash, i, block, data })
+                        .then(() => {
+                            this.emit(event, ...data);
+                        })
+                        .catch((e) => {
+                            this.logger.error(
+                                `Error while saving new pending event ${event as string} with hash ${hash} and block ${block}: ${e}`,
+                            );
+                        });
+                } else {
+                    // We can assert `this.lastEvent` since it has to be defined for `this.reachedLastEvent` to be false.
+                    if (this.lastEvent!.event === event && this.lastEvent!.hash === hash && (!i || this.lastEvent.i! === i)) {
+                        this.reachedLastEvent = true;
+                    }
                 }
+            } else {
+                this.emit(event, ...data);
             }
-        } else {
-            this.emit(event, ...data);
         }
     }
 
@@ -533,10 +539,12 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      * Recovers the pending events and emits them.
      */
     private async recoverPendingEvents(): Promise<void> {
-        const pendingEvents = await this.getPendingEvents();
+        if (this.config.persist) {
+            const pendingEvents = await this.getPendingEvents();
 
-        for (const pendingEvent of pendingEvents) {
-            this.emit(pendingEvent.event, ...(pendingEvent.data as Parameters<Generics["events"][string]>));
+            for (const pendingEvent of pendingEvents) {
+                this.emit(pendingEvent.event, ...(pendingEvent.data as Parameters<Generics["events"][string]>));
+            }
         }
     }
 
@@ -547,12 +555,42 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      * Does nothing when called with `persist` set to `false`.
      * @param event The event.
      * @param hash The hash of the event.
-     * @param block The block of the event.
+     * @param i The index of the event. Defaults to 0 since events without i are stored with i 0.
      */
-    eventDone<Event extends keyof Generics["events"]>(event: Event, hash: string, block: number): void {
+    eventDone<Event extends string & keyof Generics["events"]>(event: Event, hash: string, i: number = 0): void {
         if (this.config.persist) {
-            this.db.getRepository(PendingEvent).delete({ event: event as string, hash, block });
+            this.db.getRepository(PendingEvent).delete({ event, hash, i });
         }
+    }
+
+    /**
+     * Adds the `listener` function to the end of the listeners array for the specified event.
+     * @param event The event.
+     * @param listener The callback function.
+     * @returns A function that removes the listener.
+     */
+    on<Event extends keyof Generics["events"]>(event: Event, listener: Generics["events"][Event]): () => void {
+        // Add the event to the active event listeners
+        this.activeEventListeners[event] = (this.activeEventListeners[event] ?? 0) + 1;
+
+        const removeListener = this.eventEmitter.on(event, listener);
+
+        return () => {
+            // Remove the event from the active event listeners
+            this.activeEventListeners[event] = (this.activeEventListeners[event] ?? 1) - 1;
+
+            removeListener();
+        };
+    }
+
+    /**
+     * Emits an event with the given arguments.
+     * @param event The event to emit.
+     * @param args The arguments to pass to the event listeners.
+     * @returns Returns `true` if the event had listeners, `false` otherwise.
+     */
+    emit<Event extends keyof Generics["events"]>(event: Event, ...args: Parameters<Generics["events"][Event]>): boolean {
+        return this.eventEmitter.emit(event, ...args);
     }
 
     /**

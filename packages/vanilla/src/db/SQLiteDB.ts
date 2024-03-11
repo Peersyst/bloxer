@@ -23,7 +23,7 @@ export class SQLiteDB implements DB {
     async open(): Promise<void> {
         // Check if the database file exists, if not create it
         const existsDB = await exists(this.filename);
-        if (!existsDB) outputFile(this.filename, "");
+        if (!existsDB) await outputFile(this.filename, "");
 
         this.db = await openSQLite({
             filename: this.filename,

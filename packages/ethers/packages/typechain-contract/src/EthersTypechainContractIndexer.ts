@@ -72,7 +72,14 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
             this.logger.debug(`Handling events from contract ${this.contractAddress} and blocks ${fromBlock} to ${toBlock}...`);
             for (const event of events) {
                 // Events are not inferred correctly here. They are when using the indexer.
-                if (event.event) (this.notifyEvent as any)(event.event, event.transactionHash, event.blockNumber, event);
+                if (event.event)
+                    (this.notifyEvent as any)({
+                        event: event.event,
+                        hash: event.transactionHash,
+                        block: event.blockNumber,
+                        i: event.logIndex,
+                        data: [event],
+                    });
             }
 
             this.notifyBlock(toBlock);

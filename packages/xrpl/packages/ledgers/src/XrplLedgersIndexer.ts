@@ -35,7 +35,12 @@ export class XrplLedgersIndexer extends XrplIndexer<{
             });
 
             if (res.result.validated) {
-                this.notifyEvent("Ledger", res.result.ledger_hash, res.result.ledger_index, res.result.ledger as SelectedLedgerType);
+                this.notifyEvent({
+                    event: "Ledger",
+                    hash: res.result.ledger_hash,
+                    block: res.result.ledger_index,
+                    data: [res.result.ledger as SelectedLedgerType],
+                });
                 this.notifyBlock(res.result.ledger_index);
                 ++currentBlock;
             }

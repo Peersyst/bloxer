@@ -3,17 +3,19 @@
 --------------------------------------------------------------------------------
 
 CREATE TABLE pending_event (
-  event     TEXT,
-  hash      TEXT,
-  block     INTEGER     NOT NULL,
-  data      BLOB        NOT NULL,
-  PRIMARY KEY (event, hash)
+  event TEXT NOT NULL,
+  hash TEXT NOT NULL,
+  i INTEGER DEFAULT 0 NOT NULL,
+  block INTEGER NOT NULL,
+  data BLOB,
+  PRIMARY KEY (event, hash, i)
 );
 
 CREATE TABLE last_event (
-  event     TEXT,
-  hash      TEXT,
-  block     INTEGER     NOT NULL
+  event TEXT,
+  hash TEXT,
+  i INTEGER DEFAULT 0,
+  block INTEGER NOT NULL
 );
 
 --------------------------------------------------------------------------------
