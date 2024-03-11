@@ -13,8 +13,7 @@ CREATE TABLE pending_event (
 CREATE TABLE last_event (
   event     TEXT,
   hash      TEXT,
-  block     INTEGER     NOT NULL,
-  PRIMARY KEY (event, hash)
+  block     INTEGER     NOT NULL
 );
 
 --------------------------------------------------------------------------------

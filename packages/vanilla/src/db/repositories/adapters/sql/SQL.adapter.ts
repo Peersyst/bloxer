@@ -99,7 +99,7 @@ export abstract class SQLAdapter<Entity extends EntityConstructor> {
         return this.withWhereClause(
             `UPDATE ${this.entity.table}
         SET ${Object.entries(this.entity.toRow(data))
-            .map((key, value) => `${key} = ${this.valueToSql(value)}`)
+            .map(([key, value]) => `${key} = ${this.valueToSql(value)}`)
             .join(", ")}`,
             ...where,
         );

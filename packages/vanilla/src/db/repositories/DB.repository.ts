@@ -37,4 +37,12 @@ export abstract class DBRepository<Entity extends EntityConstructor> {
      * @param where The where clauses (will be joined with OR).
      */
     abstract delete(...where: Partial<InstanceOf<Entity>>[]): Promise<void>;
+
+    /**
+     * Updates a resource in the DB or creates it if it does not exist.
+     * @param data The data to update or create.
+     * @param where The where clauses (will be joined with OR).
+     * @returns The created resource if it was created, otherwise void.
+     */
+    abstract updateOrCreate(data: InstanceOf<Entity>, ...where: Partial<InstanceOf<Entity>>[]): Promise<InstanceOf<Entity> | void>;
 }

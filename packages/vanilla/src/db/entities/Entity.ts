@@ -3,7 +3,7 @@ import { AnyObject } from "@swisstype/essential";
 export interface EntityConstructor {
     // The entity type is set to `any` since the entity class is not known at compile time.
     // A constructor function must be defined in the interface so TS understands that another class can extend it.
-    new (): any;
+    new (...args: any[]): any;
     table: string;
     fromRow(row: AnyObject): any;
     toRow(entity: any): AnyObject;

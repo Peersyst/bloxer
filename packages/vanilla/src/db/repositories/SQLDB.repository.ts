@@ -35,4 +35,14 @@ export abstract class SQLDBRepository<Entity extends EntityConstructor> extends 
     async delete(...where: Partial<InstanceOf<Entity>>[]): Promise<void> {
         await this.db.delete(this.sqlAdapter.buildDelete(...where));
     }
+
+    async updateOrCreate(data: InstanceOf<Entity>, ...where: Partial<InstanceOf<Entity>>[]): Promise<InstanceOf<Entity> | void> {
+        const row = await this.findOne(...where);
+
+        if (row) {
+            return this.update(data, ...where);
+        } else {
+            return this.create(data);
+        }
+    }
 }

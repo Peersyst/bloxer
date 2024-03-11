@@ -70,6 +70,8 @@ export class XrplAccountIndexer extends XrplIndexer<{
                         }
                     }
                 }
+
+                this.notifyBlock(lastIndexedLedger);
             }
         } while (marker);
 

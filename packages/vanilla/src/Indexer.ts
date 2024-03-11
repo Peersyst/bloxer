@@ -13,6 +13,7 @@ import { ProviderConstructor } from "./Provider";
 import { DB } from "./db/interfaces";
 import { SQLiteDB } from "./db/SQLiteDB";
 import { LastEvent, PendingEvent } from "./db/entities";
+import { Mutex } from "async-mutex";
 
 export abstract class Indexer<Generics extends IndexerGenerics> {
     private _defaultConfig: IndexerDefaultConfig = {
@@ -76,6 +77,12 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      * Reference to the database.
      */
     private readonly db: DB;
+
+    /**
+     * A mutex used to ensure that only one new pending event is saved at a time.
+     * There could be a race condition where last event 2 is saved before last event 1.
+     */
+    private readonly eventMutex = new Mutex();
 
     /**
      * The number of reconnect retries
@@ -404,6 +411,42 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     }
 
     /**
+     * Saves a new pending event by saving the last event and creating a new pending event.
+     * Uses a mutex to ensure that only one pending event is saved at a time.
+     * @param event The event to emit.
+     * @param hash The hash of the event.
+     * @param block The block of the event.
+     * @param data The data of the event.
+     * @returns An array containing the last event and the pending event.
+     */
+    private async saveNewPendingEvent<Event extends keyof Generics["events"]>(
+        event: Event,
+        hash: string,
+        block: number,
+        ...data: Parameters<Generics["events"][Event]>
+    ): Promise<[LastEvent | void, PendingEvent]> {
+        return await this.eventMutex.runExclusive(
+            async () =>
+                await Promise.all([
+                    this.db.getRepository(LastEvent).updateOrCreate(new LastEvent(block, event as string, hash)),
+                    this.db.getRepository(PendingEvent).create(new PendingEvent(event as string, hash, block, ...data)),
+                ]),
+        );
+    }
+
+    /**
+     * Saves the next block to index by saving the last event only with the block.
+     * Uses a mutex to ensure that only one event is saved at a time.
+     * @param block The block.
+     * @returns An array containing the last event and the pending event.
+     */
+    private async saveNextBlock(block: number): Promise<LastEvent | void> {
+        return await this.eventMutex.runExclusive(
+            async () => await this.db.getRepository(LastEvent).updateOrCreate(new LastEvent(block + 1)),
+        );
+    }
+
+    /**
      * Creates a pending event if `persist` is true and emits the event.
      * @param event The event to emit.
      * @param hash The hash of the event.
@@ -418,15 +461,13 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     ): void {
         if (this.config.persist) {
             if (this.reachedLastEvent) {
-                this.db
-                    .getRepository(PendingEvent)
-                    .create(PendingEvent.fromEventNotification(event as string, hash, block, ...data))
+                this.saveNewPendingEvent(event, hash, block, ...data)
                     .then(() => {
                         this.emit(event, ...data);
                     })
                     .catch((e) => {
                         this.logger.error(
-                            `Error while creating the pending event ${event as string} with hash ${hash} and block ${block}: ${e}`,
+                            `Error while saving new pending event ${event as string} with hash ${hash} and block ${block}: ${e}`,
                         );
                     });
             } else {
@@ -437,6 +478,23 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
             }
         } else {
             this.emit(event, ...data);
+        }
+    }
+
+    /**
+     * Notifies the last block processed. It saves the last event only with the block if `persist` is true.
+     * This method should be called after processing a block or a batch of blocks in order to keep the persistence updated.
+     * @param block The block.
+     */
+    protected notifyBlock(block: number): void {
+        if (this.config.persist) {
+            /**
+             * We assume that the last event is reached.
+             * A new block can never be processed if the last event is not reached.
+             */
+            this.saveNextBlock(block).catch((e) => {
+                this.logger.error(`Error while saving the last block processed ${block}: ${e}`);
+            });
         }
     }
 
@@ -463,7 +521,8 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     private async recoverLastEvent(): Promise<void> {
         if (this.config.persist) {
             this.lastEvent = await this.getLastEvent();
-            this.reachedLastEvent = !this.lastEvent;
+            // If last event is undefined OR it has no event (only contains the last block), last event is reached
+            this.reachedLastEvent = !this.lastEvent?.event;
         } else {
             this.lastEvent = undefined;
             this.reachedLastEvent = true;

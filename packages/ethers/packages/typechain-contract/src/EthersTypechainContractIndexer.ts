@@ -75,6 +75,8 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
                 if (event.event) (this.notifyEvent as any)(event.event, event.transactionHash, event.blockNumber, event);
             }
 
+            this.notifyBlock(toBlock);
+
             this.logger.info(`Indexed from block ${fromBlock} to block ${toBlock}...`);
 
             fromBlock = toBlock + 1;
