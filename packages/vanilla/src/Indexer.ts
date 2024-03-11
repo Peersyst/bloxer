@@ -482,7 +482,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     }
 
     /**
-     * Notifies the last block processed. It saves the last event only with the block if `persist` is true.
+     * Notifies the last block processed. It saves the last event only with the `block + 1` if `persist` is true.
      * This method should be called after processing a block or a batch of blocks in order to keep the persistence updated.
      * @param block The block.
      */
