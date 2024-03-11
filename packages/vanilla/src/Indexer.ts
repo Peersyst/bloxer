@@ -435,7 +435,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     }
 
     /**
-     * Saves the last indexed block by saving the last event only with the block + 1.
+     * Saves the last indexed block by saving the last event only with the `block + 1`.
      * Uses a mutex to ensure that only one event is saved at a time.
      * @param block The block.
      * @returns An array containing the last event and the pending event.

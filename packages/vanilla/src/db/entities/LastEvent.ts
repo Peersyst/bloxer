@@ -13,8 +13,8 @@ export class LastEvent extends Entity("last_event") {
 
     constructor(block: number, event?: string, hash?: string) {
         super();
+        this.block = block;
         this.event = event;
         this.hash = hash;
-        this.block = block;
     }
 }
