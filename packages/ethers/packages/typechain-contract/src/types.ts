@@ -1,4 +1,4 @@
-import { ExtendedIndexerState, ExtendedIndexOptions, ExtendedIndexerConfig } from "@bloxer/vanilla";
+import { ExtendedIndexOptions, ExtendedIndexerConfig } from "@bloxer/vanilla";
 
 export type EthersTypechainContractIndexerConfig = ExtendedIndexerConfig<{
     /**
@@ -17,7 +17,5 @@ export type EthersTypechainContractIndexerConfig = ExtendedIndexerConfig<{
      */
     getEventsRetryTimeout?: number;
 }>;
-
-export type EthersTypechainContractIndexerState = ExtendedIndexerState<{}>;
 
 export type EthersTypechainContractIndexerIndexOptions = ExtendedIndexOptions<{}>;

@@ -1,4 +1,4 @@
-import { EventEmitter } from "./EventEmitter";
+import { EventEmitter } from "./events/EventEmitter";
 
 export type ProviderEvents = {
     connected: () => void;

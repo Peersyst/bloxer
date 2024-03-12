@@ -6,7 +6,6 @@ export abstract class EthersIndexer<Generics extends EthersIndexerGenerics> exte
     provider: Generics["provider"] extends undefined ? EthersProvider : Generics["provider"];
     events: Generics["events"];
     config: Generics["config"];
-    state: Generics["state"];
     indexOptions: Generics["indexOptions"];
 }> {
     protected overrideDefaultConfig(defaultConfig: typeof this.defaultConfig): void {
@@ -16,7 +15,7 @@ export abstract class EthersIndexer<Generics extends EthersIndexerGenerics> exte
             logger: {
                 name: "EthersIndexer",
             },
-            stateFilePath: "./.ethers-indexer-state.json",
+            persistenceFilePath: "./.ethers-indexer.db",
         } as typeof this.defaultConfig);
     }
 

@@ -11,11 +11,19 @@
     "author": "Peersyst",
     "license": "ISC",
     "dependencies": {
+        "async-mutex": "^0.4.1",
+        "fs-extra": "^11.2.0",
+        "sqlite": "^5.1.1",
+        "sqlite3": "^5.1.7",
         "tslog": "^4.9.2"
     },
     "sideEffects": false,
     "publishConfig": {
         "access": "public"
     },
-    "gitHead": "fc337af75640624b77325644b54f4cad44d32f7d"
+    "gitHead": "fc337af75640624b77325644b54f4cad44d32f7d",
+    "devDependencies": {
+        "@swisstype/essential": "^0.0.5",
+        "@types/fs-extra": "^11.0.4"
+    }
 }

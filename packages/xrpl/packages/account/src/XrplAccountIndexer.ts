@@ -1,6 +1,6 @@
 import { XrplIndexer, XrplProvider } from "@bloxer/xrpl";
 import { XrplAccountIndexerEvents } from "./events";
-import { XrplAccountIndexerConfig, XrplAccountIndexerState, XrplAccountIndexerIndexOptions } from "./types";
+import { XrplAccountIndexerConfig, XrplAccountIndexerIndexOptions } from "./types";
 import { isValidAddress } from "xrpl";
 import { AccountTransaction } from "./xrpl.types";
 
@@ -8,7 +8,6 @@ export class XrplAccountIndexer extends XrplIndexer<{
     provider: XrplProvider;
     events: XrplAccountIndexerEvents;
     config: XrplAccountIndexerConfig;
-    state: XrplAccountIndexerState;
     indexOptions: XrplAccountIndexerIndexOptions;
 }> {
     protected overrideDefaultConfig(defaultConfig: typeof this.defaultConfig): void {
@@ -18,7 +17,7 @@ export class XrplAccountIndexer extends XrplIndexer<{
             logger: {
                 name: "XrplAccountIndexer",
             },
-            stateFilePath: "./.xrpl-account-indexer-state.json",
+            persistenceFilePath: "./.xrpl-account-indexer.db",
             transactionsBatchSize: 10000,
         } as typeof this.defaultConfig);
     }
@@ -34,10 +33,9 @@ export class XrplAccountIndexer extends XrplIndexer<{
         super(config);
     }
 
-    async index({ startingBlock, endingBlock, previousTransaction }: XrplAccountIndexerIndexOptions): Promise<number> {
+    async index({ startingBlock, endingBlock }: XrplAccountIndexerIndexOptions): Promise<number> {
         let marker;
         let lastIndexedLedger = startingBlock;
-        let reachedPreviousTransaction = !previousTransaction;
 
         do {
             const res = await this.request({
@@ -62,22 +60,23 @@ export class XrplAccountIndexer extends XrplIndexer<{
                     if (accountTx.validated && correctlyCastedAccountTx.meta.TransactionResult === "tesSUCCESS") {
                         const tx = correctlyCastedAccountTx.tx;
 
-                        // If the previous transaction has been reached the following ones can be indexed. Otherwise, it still needs to be found.
-                        if (reachedPreviousTransaction) {
-                            // Emit transaction events
-                            this.emit("Transaction", correctlyCastedAccountTx);
-                            this.emit(tx.TransactionType, correctlyCastedAccountTx as AccountTransaction<any>);
-                            // Save the last indexed transaction state
-                            this.setPartialState({
-                                transaction: tx.hash,
-                                block: tx.ledger_index,
+                        const hash = tx.hash;
+                        const block = tx.ledger_index;
+
+                        if (hash !== undefined && block !== undefined) {
+                            // Notify transaction events
+                            this.notifyEvent({ event: "Transaction", hash, block, data: [correctlyCastedAccountTx] });
+                            this.notifyEvent({
+                                event: tx.TransactionType,
+                                hash,
+                                block,
+                                data: [correctlyCastedAccountTx as AccountTransaction<any>],
                             });
-                            // TODO: What happens if some handlers can treat the tx but others can't (Edge case)
-                        } else if (tx.hash === previousTransaction) {
-                            reachedPreviousTransaction = true;
                         }
                     }
                 }
+
+                this.notifyBlock(lastIndexedLedger);
             }
         } while (marker);
 

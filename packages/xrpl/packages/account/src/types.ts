@@ -1,4 +1,4 @@
-import { ExtendedIndexerState, ExtendedIndexOptions, ExtendedIndexerConfig } from "@bloxer/vanilla";
+import { ExtendedIndexOptions, ExtendedIndexerConfig } from "@bloxer/vanilla";
 
 export type XrplAccountIndexerConfig = ExtendedIndexerConfig<{
     /**
@@ -7,7 +7,5 @@ export type XrplAccountIndexerConfig = ExtendedIndexerConfig<{
      */
     transactionsBatchSize?: number;
 }>;
-
-export type XrplAccountIndexerState = ExtendedIndexerState<{}>;
 
 export type XrplAccountIndexerIndexOptions = ExtendedIndexOptions<{}>;

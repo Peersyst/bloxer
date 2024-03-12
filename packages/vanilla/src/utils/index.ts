@@ -1,4 +1,4 @@
-import { DeepPick, NestedKeys } from "./utils.types";
+import { DeepPick, NestedKeys } from "@swisstype/essential";
 
 /**
  * Executes a function with retries

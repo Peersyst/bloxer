@@ -6,7 +6,6 @@ function buildFlavourNames(flavour) {
     const flavourIndexerName = `${flavourName}Indexer`;
     const flavourIndexerGenericsName = `${flavourIndexerName}Generics`;
     const flavourExtendedIndexerConfigName = `${flavourIndexerName}Config`;
-    const flavourExtendedIndexerStateName = `${flavourIndexerName}State`;
     const flavourExtendedIndexOptionsName = `${flavourIndexerName}IndexOptions`;
 
     return {
@@ -15,7 +14,6 @@ function buildFlavourNames(flavour) {
         flavourIndexerName,
         flavourIndexerGenericsName,
         flavourExtendedIndexerConfigName,
-        flavourExtendedIndexerStateName,
         flavourExtendedIndexOptionsName,
     };
 }
@@ -26,7 +24,6 @@ function buildFlavourImplementationNames(flavour, impl) {
     const implName = `${flavourName}${pascalCase(impl)}`;
     const implIndexerName = `${implName}Indexer`;
     const implIndexerConfigName = `${implIndexerName}Config`;
-    const implIndexerStateName = `${implIndexerName}State`;
     const implIndexOptionsName = `${implIndexerName}IndexOptions`;
     const implEventsName = `${implIndexerName}Events`;
 
@@ -38,7 +35,6 @@ function buildFlavourImplementationNames(flavour, impl) {
         implName,
         implIndexerName,
         implIndexerConfigName,
-        implIndexerStateName,
         implIndexOptionsName,
         implEventsName,
     };

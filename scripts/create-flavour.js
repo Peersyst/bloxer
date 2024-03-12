@@ -16,7 +16,6 @@ function main() {
             flavourIndexerName,
             flavourIndexerGenericsName,
             flavourExtendedIndexerConfigName,
-            flavourExtendedIndexerStateName,
             flavourExtendedIndexOptionsName,
         } = buildFlavourNames(flavour);
 
@@ -121,12 +120,10 @@ export class ${flavourProviderName} extends Provider<Request> {
         fse.writeFileSync(buildFlavourSrcPath(`${flavourProviderName}.ts`), flavourProvider, "utf8");
 
         // Create types
-        const flavourTypes = `import { ExtendedIndexerState, ExtendedIndexOptions, ExtendedIndexerConfig } from "${vanillaPackage.name}";
+        const flavourTypes = `import { ExtendedIndexOptions, ExtendedIndexerConfig } from "${vanillaPackage.name}";
 import { ${flavourProviderName} } from "./${flavourProviderName}";
 
 export type ${flavourExtendedIndexerConfigName} = ExtendedIndexerConfig<{}>;
-
-export type ${flavourExtendedIndexerStateName} = ExtendedIndexerState<{}>;
 
 export type ${flavourExtendedIndexOptionsName} = ExtendedIndexOptions<{}>;
 
@@ -134,7 +131,6 @@ export type ${flavourIndexerGenericsName} = {
     provider?: ${flavourProviderName};
     events: Record<string, (...args: any[]) => any>;
     config?: ${flavourExtendedIndexerConfigName};
-    state?: ${flavourExtendedIndexerStateName};
     indexOptions?: ${flavourExtendedIndexOptionsName};
 };
 `;
@@ -149,7 +145,6 @@ export abstract class ${flavourIndexerName}<Generics extends ${flavourIndexerGen
     provider: Generics["provider"] extends undefined ? ${flavourProviderName} : Generics["provider"];
     events: Generics["events"];
     config: Generics["config"];
-    state: Generics["state"];
     indexOptions: Generics["indexOptions"];
 }> {
     protected overrideDefaultConfig(defaultConfig: typeof this.defaultConfig): void {
@@ -159,7 +154,7 @@ export abstract class ${flavourIndexerName}<Generics extends ${flavourIndexerGen
             logger: {
                 name: "${flavourIndexerName}",
             },
-            stateFilePath: "./.${flavour}-indexer-state.json",
+            persistenceFilePath: "./.${flavour}-indexer.json",
         } as typeof this.defaultConfig);
     }
 

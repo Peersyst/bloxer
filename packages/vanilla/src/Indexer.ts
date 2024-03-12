@@ -1,21 +1,27 @@
 import { Logger } from "tslog";
 import { withRetries, deepmerge } from "./utils";
-import { IndexerStateRepository } from "./IndexerState.repository";
-import { EventEmitter } from "./EventEmitter";
+import { EventEmitter } from "./events/EventEmitter";
 import {
-    IndexOptions,
     IndexerGenerics,
     IndexerConfig,
     DefaultExtendedIndexerConfig,
     IndexerDefaultConfig,
     InheritedIndexerConfig,
-    InheritedIndexerState,
+    IndexOptions,
 } from "./types";
 import { ProviderConstructor } from "./Provider";
+import { DB } from "./db/interfaces";
+import { SQLiteDB } from "./db/SQLiteDB";
+import { LastEvent, PendingEvent } from "./db/entities";
+import { Mutex } from "async-mutex";
 
 export abstract class Indexer<Generics extends IndexerGenerics> {
+    /**
+     * The default config of the indexer.
+     */
     private _defaultConfig: IndexerDefaultConfig = {
         startingBlock: 0,
+        endingBlock: "latest",
         reconnectTimeout: 5000,
         maxReconnectAttempts: 10,
         maxRequestRetries: 10,
@@ -25,8 +31,8 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
             prettyLogTemplate: "{{dd}}-{{mm}}-{{yyyy}} {{hh}}:{{MM}}:{{ss}}:{{ms}} {{name}} {{logLevelName}} ",
             prettyLogTimeZone: "local",
         },
-        stateFilePath: ".bloxer-indexer.state.json",
-        persistState: true,
+        persistenceFilePath: ".bloxer-indexer.db",
+        persist: true,
     };
     protected get defaultConfig(): DefaultExtendedIndexerConfig<InheritedIndexerConfig<Generics["config"]>> {
         // Children will get the right type
@@ -56,6 +62,9 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         }
     }
 
+    /**
+     * The config of the indexer.
+     */
     private _config: Required<InheritedIndexerConfig<Generics["config"]>>;
     protected get config(): Required<InheritedIndexerConfig<Generics["config"]>> {
         return this._config;
@@ -64,58 +73,68 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         this._config = value;
     }
 
+    /**
+     * The logger of the indexer.
+     */
     readonly logger: Logger<any>;
 
+    /**
+     * The event emitter of the indexer.
+     */
     private readonly eventEmitter = new EventEmitter<Generics["events"]>();
+    /**
+     * Contains the active event listeners for each event. That is, the subscribed events using the `on` method.
+     */
+    private readonly activeEventListeners: Partial<Record<keyof Generics["events"], number>> = {};
 
+    /**
+     * Reference to the provider.
+     */
     private _provider: Generics["provider"];
 
-    private readonly indexerStateRepository: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>;
+    /**
+     * Reference to the database.
+     */
+    private readonly db: DB;
+
+    /**
+     * A mutex used to ensure that only one new pending event is saved at a time.
+     * There could be a race condition where last event 2 is saved before last event 1.
+     */
+    private readonly eventMutex = new Mutex();
 
     /**
      * The number of reconnect retries
      */
     private reconnectRetries = 0;
+
     /**
      * Provider (connection) promises
      */
     private resolveProviderPromise: () => void;
     private providerPromise: Promise<void>;
+
     /**
      * Block promises
      */
     private resolveLatestBlockPromise: (block: number) => void;
     private latestBlockPromise: Promise<number>;
     protected latestBlock: number;
+
     /**
      * Whether the indexer is running
      */
     running = false;
 
     /**
-     * Event listener for the indexer
+     * The last event processed before the indexer is started.
      */
-    readonly on: EventEmitter<Generics["events"]>["on"];
+    lastEvent: LastEvent | undefined;
 
     /**
-     * Event emitter for the indexer
+     * Whether the last event has been reached and new events can be processed.
      */
-    protected readonly emit: EventEmitter<Generics["events"]>["emit"];
-
-    /**
-     * Gets the state or a nested property from the state.
-     */
-    protected readonly getState: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>["get"];
-
-    /**
-     * Sets the state.
-     */
-    protected readonly setState: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>["set"];
-
-    /**
-     * Sets a partial state.
-     */
-    protected readonly setPartialState: IndexerStateRepository<InheritedIndexerState<Generics["state"]>>["setPartial"];
+    reachedLastEvent = false;
 
     /**
      * Requests the provider with retries
@@ -133,16 +152,8 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
         this.overrideDefaultConfig(this.defaultConfig as DefaultExtendedIndexerConfig<InheritedIndexerConfig<Generics["config"]>>);
         this.config = deepmerge(this.defaultConfig, config) as typeof this.config;
         this.logger = new Logger(this.config.logger);
-        this.indexerStateRepository = new IndexerStateRepository({
-            stateFilePath: this.config.stateFilePath,
-            persistState: this.config.persistState,
-        });
+        this.db = new SQLiteDB(this.config.persistenceFilePath);
 
-        this.on = this.eventEmitter.on.bind(this.eventEmitter);
-        this.emit = this.eventEmitter.emit.bind(this.eventEmitter);
-        this.getState = this.indexerStateRepository.get.bind(this.indexerStateRepository);
-        this.setState = this.indexerStateRepository.set.bind(this.indexerStateRepository);
-        this.setPartialState = this.indexerStateRepository.setPartial.bind(this.indexerStateRepository);
         this.request = async function request(...args: any[]) {
             return this.withRetries(
                 async () => {
@@ -334,47 +345,292 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     }
 
     /**
-     * Transforms the state into index options
-     * @param state The state
-     * @returns The index options
+     * Opens the database connection if `persist` is true.
      */
-    protected indexOptionsFromState(state: InheritedIndexerState<Generics["state"]>): IndexOptions {
+    private async openDB(): Promise<void> {
+        if (this.config.persist) {
+            await this.db.open();
+        }
+    }
+
+    /**
+     * Closes the database connection if `persist` is true.
+     */
+    private async closeDB(): Promise<void> {
+        if (this.config.persist) {
+            await this.db.close();
+        }
+    }
+
+    /**
+     * Gets the starting block.
+     * @returns The starting block.
+     */
+    private getStartingBlock(): number {
+        if (this.lastEvent) {
+            return this.lastEvent.block;
+        } else {
+            return this.config.startingBlock === "latest" ? this.latestBlock : this.config.startingBlock;
+        }
+    }
+
+    /**
+     * Gets the ending block.
+     * @returns The ending block.
+     */
+    private getEndingBlock(): number {
+        return this.config.endingBlock === "latest" ? this.latestBlock : this.config.endingBlock;
+    }
+
+    /**
+     * Gets index options.
+     * @param nextBlock The next block.
+     * @param lastEvent The last event.
+     * @returns The index options.
+     */
+    private getIndexOptions(nextBlock: number | undefined): Required<IndexOptions> {
         return {
-            startingBlock: state.block,
-            previousTransaction: state.transaction,
+            startingBlock: nextBlock ?? this.getStartingBlock(),
+            endingBlock: this.getEndingBlock(),
         };
+    }
+
+    /**
+     * Checks if indexer can index.
+     * The indexer can index if the staring block is less than or equal to the latest block.
+     * @param indexOptions The index options.
+     * @returns Whether the indexer can index.
+     */
+    private async canIndex({ startingBlock, endingBlock }: Required<IndexOptions>): Promise<boolean> {
+        if (this.lastEvent && this.lastEvent.block > this.latestBlock) {
+            this.logger.fatal(
+                `Last event block ${this.lastEvent.block} is greater than the latest block ${this.latestBlock}. This should never happen and could mean that the database data has not been stored correctly or is corrupted.`,
+            );
+            await this.stop();
+            return false;
+        } else if (startingBlock > endingBlock) {
+            this.logger.info(`Indexing to block ${endingBlock} completed.`);
+            await this.stop();
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * Saves a new pending event by saving the last event and creating a new pending event.
+     * Uses a mutex to ensure that only one pending event is saved at a time.
+     * @param event The event to emit.
+     * @returns An array containing the last event and the pending event.
+     */
+    private async saveNewPendingEvent<Event extends string & keyof Generics["events"]>({
+        event,
+        hash,
+        i = 0,
+        block,
+        data,
+    }: PendingEvent<Event, Parameters<Generics["events"][Event]>>): Promise<[LastEvent | void, PendingEvent]> {
+        return await this.eventMutex.runExclusive(
+            async () =>
+                await Promise.all([
+                    this.db.getRepository(LastEvent).updateOrCreate({ block, event, hash, i }),
+                    this.db.getRepository(PendingEvent).create({ event, hash, i, block, data }),
+                ]),
+        );
+    }
+
+    /**
+     * Saves the last indexed block by saving the last event only with the `block + 1`.
+     * Uses a mutex to ensure that only one event is saved at a time.
+     * @param block The block.
+     * @returns An array containing the last event and the pending event.
+     */
+    private async saveBlock(block: number): Promise<LastEvent | void> {
+        return await this.eventMutex.runExclusive(
+            async () =>
+                await this.db.getRepository(LastEvent).updateOrCreate({ block: block + 1, event: undefined, hash: undefined, i: 0 }),
+        );
+    }
+
+    /**
+     * Creates a pending event if `persist` is true and emits the event.
+     * @param event The event to emit.
+     */
+    protected notifyEvent<Event extends string & keyof Generics["events"]>({
+        event,
+        hash,
+        i,
+        block,
+        data,
+    }: PendingEvent<Event, Parameters<Generics["events"][Event]>>): void {
+        if (this.activeEventListeners[event]) {
+            if (this.config.persist) {
+                if (this.reachedLastEvent) {
+                    this.saveNewPendingEvent({ event, hash, i, block, data })
+                        .then(() => {
+                            this.emit(event, ...data);
+                        })
+                        .catch((e) => {
+                            this.logger.error(
+                                `Error while saving new pending event ${event as string} with hash ${hash} and block ${block}: ${e}`,
+                            );
+                        });
+                } else {
+                    // We can assert `this.lastEvent` since it has to be defined for `this.reachedLastEvent` to be false.
+                    if (this.lastEvent!.event === event && this.lastEvent!.hash === hash && (!i || this.lastEvent.i! === i)) {
+                        this.reachedLastEvent = true;
+                    }
+                }
+            } else {
+                this.emit(event, ...data);
+            }
+        }
+    }
+
+    /**
+     * Notifies the last block processed. It saves the last event only with the `block + 1` if `persist` is true.
+     * This method should be called after processing a block or a batch of blocks in order to keep the persistence updated.
+     * @param block The block.
+     */
+    protected notifyBlock(block: number): void {
+        if (this.config.persist) {
+            /**
+             * We assume that the last event is reached.
+             * A new block can never be processed if the last event is not reached.
+             */
+            this.saveBlock(block).catch((e) => {
+                this.logger.error(`Error while saving the last block processed ${block}: ${e}`);
+            });
+        }
+    }
+
+    /**
+     * Gets the last event processed.
+     * @returns The last event processed or undefined if there is no last event.
+     */
+    private getLastEvent(): Promise<LastEvent | undefined> {
+        return this.db.getRepository(LastEvent).findOne();
+    }
+
+    /**
+     * Gets the pending events.
+     * @returns The pending events.
+     */
+    private getPendingEvents(): Promise<PendingEvent[]> {
+        return this.db.getRepository(PendingEvent).findAll();
+    }
+
+    /**
+     * Recovers the last event processed.
+     * Sets `lastEvent` and `reachedLastEvent`.
+     */
+    private async recoverLastEvent(): Promise<void> {
+        if (this.config.persist) {
+            this.lastEvent = await this.getLastEvent();
+            // If last event is undefined OR it has no event (only contains the last block), last event is reached
+            this.reachedLastEvent = !this.lastEvent?.event;
+        } else {
+            this.lastEvent = undefined;
+            this.reachedLastEvent = true;
+        }
+    }
+
+    /**
+     * Recovers the pending events and emits them.
+     */
+    private async recoverPendingEvents(): Promise<void> {
+        if (this.config.persist) {
+            const pendingEvents = await this.getPendingEvents();
+
+            for (const pendingEvent of pendingEvents) {
+                this.emit(pendingEvent.event, ...(pendingEvent.data as Parameters<Generics["events"][string]>));
+            }
+        }
+    }
+
+    /**
+     * Marks an event as done by deleting the pending event.
+     * **This method should be called after processing an event.**
+     * If not called, the event will persist in the database and will be processed again after a restart.
+     * Does nothing when called with `persist` set to `false`.
+     * @param event The event.
+     * @param hash The hash of the event.
+     * @param i The index of the event. Defaults to 0 since events without i are stored with i 0.
+     */
+    eventDone<Event extends string & keyof Generics["events"]>(event: Event, hash: string, i: number = 0): void {
+        if (this.config.persist) {
+            this.db.getRepository(PendingEvent).delete({ event, hash, i });
+        }
+    }
+
+    /**
+     * Adds the `listener` function to the end of the listeners array for the specified event.
+     * @param event The event.
+     * @param listener The callback function.
+     * @returns A function that removes the listener.
+     */
+    on<Event extends keyof Generics["events"]>(event: Event, listener: Generics["events"][Event]): () => void {
+        // Add the event to the active event listeners
+        this.activeEventListeners[event] = (this.activeEventListeners[event] ?? 0) + 1;
+
+        const removeListener = this.eventEmitter.on(event, listener);
+
+        return () => {
+            // Remove the event from the active event listeners
+            this.activeEventListeners[event] = (this.activeEventListeners[event] ?? 1) - 1;
+
+            removeListener();
+        };
+    }
+
+    /**
+     * Emits an event with the given arguments.
+     * @param event The event to emit.
+     * @param args The arguments to pass to the event listeners.
+     * @returns Returns `true` if the event had listeners, `false` otherwise.
+     */
+    emit<Event extends keyof Generics["events"]>(event: Event, ...args: Parameters<Generics["events"][Event]>): boolean {
+        return this.eventEmitter.emit(event, ...args);
     }
 
     /**
      * Runs the indexer
      */
     async run(): Promise<void> {
-        await this.initializeProvider();
-
-        let state = this.getState() as InheritedIndexerState<Generics["state"]>;
-        let nextBlock;
         this.running = true;
+
+        try {
+            // Open db connection and initialize provider
+            await Promise.all([this.openDB(), this.initializeProvider()]);
+            // Recover the last event
+            await this.recoverLastEvent();
+            // Recover the pending events
+            await this.recoverPendingEvents();
+        } catch (e) {
+            this.logger.error(`Error while running the indexer: ${e}`);
+            await this.stop();
+        }
+
+        let nextBlock: number | undefined;
 
         while (this.running) {
             this.latestBlock = await this.latestBlockPromise;
-            if (nextBlock !== undefined ? nextBlock <= this.latestBlock : !state.block || state.block <= this.latestBlock) {
-                const fromBlock =
-                    nextBlock ?? state.block ?? (this.config.startingBlock === "latest" ? this.latestBlock : this.config.startingBlock);
-                const indexingFrom = fromBlock ?? "genesys";
+
+            const indexOptions = this.getIndexOptions(nextBlock);
+            const canIndex = await this.canIndex(indexOptions);
+
+            if (canIndex) {
+                const indexingFrom = indexOptions.startingBlock ?? "genesis";
+
                 this.logger.info(`Indexing from block ${indexingFrom} to latest`);
+
                 try {
-                    nextBlock = await this.index(
-                        nextBlock !== undefined ? { startingBlock: nextBlock } : this.indexOptionsFromState({ block: fromBlock, ...state }),
-                    );
-                    this.setState({
-                        block: nextBlock,
-                    } as InheritedIndexerState<Generics["state"]>);
+                    nextBlock = await this.index(indexOptions);
+
                     this.logger.info(`Indexed blocks from ${indexingFrom} to ${nextBlock - 1} (latest)`);
                 } catch (e) {
                     this.logger.error(`Indexing from block ${indexingFrom} to latest failed with error ${e}`);
                     this.logger.info(`Retrying indexing from block ${indexingFrom} to latest...`);
-                    state = this.getState() as InheritedIndexerState<Generics["state"]>;
-                    nextBlock = undefined;
                 }
             }
         }
@@ -386,8 +642,11 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     async stop(): Promise<void> {
         if (this.running) {
             this.logger.info("Stopping indexer...");
+
             this.running = false;
-            await this.unsubscribeFromLatestBlock();
+            // Close db connection and unsubscribe from latest block
+            await Promise.all([this.closeDB(), this.unsubscribeFromLatestBlock()]);
+
             this.logger.info("Indexer stopped");
         } else {
             this.logger.warn("Indexer is already stopped");

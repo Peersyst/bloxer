@@ -1,10 +1,6 @@
 import { EthersIndexer } from "@bloxer/ethers";
 import { EthersTypechainContractIndexerEvents } from "./events";
-import {
-    EthersTypechainContractIndexerConfig,
-    EthersTypechainContractIndexerState,
-    EthersTypechainContractIndexerIndexOptions,
-} from "./types";
+import { EthersTypechainContractIndexerConfig, EthersTypechainContractIndexerIndexOptions } from "./types";
 import { EthersTypechainContractProvider } from "./EthersTypechainContractProvider";
 import {
     TypechainContractFactory as GenericTypechainContractFactory,
@@ -18,7 +14,6 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
     provider: EthersTypechainContractProvider;
     events: EthersTypechainContractIndexerEvents<ContractFactory>;
     config: EthersTypechainContractIndexerConfig;
-    state: EthersTypechainContractIndexerState;
     indexOptions: EthersTypechainContractIndexerIndexOptions;
 }> {
     protected overrideDefaultConfig(defaultConfig: typeof this.defaultConfig): void {
@@ -28,7 +23,7 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
             logger: {
                 name: "EthersTypechainContractIndexer",
             },
-            stateFilePath: "./.ethers-typechain-contract-indexer-state.json",
+            persistenceFilePath: "./.ethers-typechain-contract-indexer.db",
             blocksBatchSize: 1000,
             getEventsTimeout: 5000,
             getEventsRetryTimeout: 5000,
@@ -52,14 +47,9 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
         super(EthersTypechainContractProvider, config);
     }
 
-    async index({
-        startingBlock,
-        endingBlock = this.latestBlock,
-        previousTransaction,
-    }: EthersTypechainContractIndexerIndexOptions): Promise<number> {
+    async index({ startingBlock, endingBlock }: EthersTypechainContractIndexerIndexOptions): Promise<number> {
         let fromBlock = startingBlock;
         let toBlock = Math.min(startingBlock + this.config.blocksBatchSize, endingBlock);
-        let reachedPreviousTransaction = !previousTransaction;
 
         while (fromBlock <= endingBlock) {
             this.logger.info(`Indexing from block ${fromBlock} to block ${toBlock}...`);
@@ -81,25 +71,18 @@ export class EthersTypechainContractIndexer<ContractFactory extends GenericTypec
 
             this.logger.debug(`Handling events from contract ${this.contractAddress} and blocks ${fromBlock} to ${toBlock}...`);
             for (const event of events) {
-                // If the previous transaction has been reached the following ones can be indexed. Otherwise, it still needs to be found.
-                if (reachedPreviousTransaction) {
-                    // Emit event
-                    (this.emit as any)("Event", event);
-                    if (event.event) (this.emit as any)(event.event, event);
-                    // Save the last indexed transaction state
-                    this.setPartialState({
-                        transaction: event.transactionHash,
+                // Events are not inferred correctly here. They are when using the indexer.
+                if (event.event)
+                    (this.notifyEvent as any)({
+                        event: event.event,
+                        hash: event.transactionHash,
                         block: event.blockNumber,
+                        i: event.logIndex,
+                        data: [event],
                     });
-                    // TODO: What happens if some handlers can treat the tx but others can't (Edge case)
-                } else if (event.transactionHash === previousTransaction) {
-                    reachedPreviousTransaction = true;
-                }
             }
 
-            this.setState({
-                block: toBlock,
-            });
+            this.notifyBlock(toBlock);
 
             this.logger.info(`Indexed from block ${fromBlock} to block ${toBlock}...`);
 
