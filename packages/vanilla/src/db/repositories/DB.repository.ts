@@ -1,5 +1,6 @@
 import { EntityConstructor } from "../entities";
 import { InstanceOf } from "../../utils/types";
+import { DBWhere } from "./types";
 
 export abstract class DBRepository<Entity extends EntityConstructor> {
     constructor(protected readonly entity: Entity) {}
@@ -9,14 +10,14 @@ export abstract class DBRepository<Entity extends EntityConstructor> {
      * @param where The where clauses (will be joined with OR).
      * @returns The resource or undefined if no resource is found.
      */
-    abstract findOne(...where: Partial<InstanceOf<Entity>>[]): Promise<InstanceOf<Entity> | undefined>;
+    abstract findOne(where?: DBWhere<Entity>): Promise<InstanceOf<Entity> | undefined>;
 
     /**
      * Returns all resources from the DB matching the given wheres.
      * @param where The where clauses (will be joined with OR).
      * @returns The found resources.
      */
-    abstract findAll(...where: Partial<InstanceOf<Entity>>[]): Promise<InstanceOf<Entity>[]>;
+    abstract findAll(where?: DBWhere<Entity>): Promise<InstanceOf<Entity>[]>;
 
     /**
      * Creates a resource in the DB.
@@ -30,13 +31,13 @@ export abstract class DBRepository<Entity extends EntityConstructor> {
      * @param data The data to update.
      * @param where The where clauses (will be joined with OR).
      */
-    abstract update(data: Partial<InstanceOf<Entity>>, ...where: Partial<InstanceOf<Entity>>[]): Promise<void>;
+    abstract update(data: Partial<InstanceOf<Entity>>, where?: DBWhere<Entity>): Promise<void>;
 
     /**
      * Deletes a resource from the DB.
      * @param where The where clauses (will be joined with OR).
      */
-    abstract delete(...where: Partial<InstanceOf<Entity>>[]): Promise<void>;
+    abstract delete(where?: DBWhere<Entity>): Promise<void>;
 
     /**
      * Updates a resource in the DB or creates it if it does not exist.
@@ -44,5 +45,5 @@ export abstract class DBRepository<Entity extends EntityConstructor> {
      * @param where The where clauses (will be joined with OR).
      * @returns The created resource if it was created, otherwise void.
      */
-    abstract updateOrCreate(data: InstanceOf<Entity>, ...where: Partial<InstanceOf<Entity>>[]): Promise<InstanceOf<Entity> | void>;
+    abstract updateOrCreate(data: Partial<InstanceOf<Entity>>, where?: DBWhere<Entity>): Promise<InstanceOf<Entity> | void>;
 }
