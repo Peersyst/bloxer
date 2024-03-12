@@ -4,3 +4,4 @@ export * from "./Provider";
 export * from "./events";
 export * from "./utils";
 export * from "./utils/types";
+export * from "./EventInfo";
