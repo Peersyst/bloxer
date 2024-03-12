@@ -12,9 +12,9 @@ export abstract class SQLAdapter<Entity extends EntityConstructor> {
     /**
      * Transforms a JS value to its SQL value.
      * @param value The JS value.
-     * @returns The SQL value as string.
+     * @returns The SQL value.
      */
-    abstract valueToSql<T = any>(value: T): string;
+    abstract valueToSql<T = any>(value: T): any;
 
     /**
      * Transforms an SQL value to its JS value.
