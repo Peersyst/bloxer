@@ -16,7 +16,7 @@ async function drill() {
     indexer.on("AddClaimAttestation", async (event) => {
         console.log("Found AddClaimAttestation event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("AddClaimAttestation", event.transactionHash, event.logIndex);
@@ -24,7 +24,7 @@ async function drill() {
     indexer.on("AddCreateAccountAttestation", async (event) => {
         console.log("Found AddCreateAccountAttestation event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("AddCreateAccountAttestation", event.transactionHash, event.logIndex);
@@ -32,7 +32,7 @@ async function drill() {
     indexer.on("Claim", async (event) => {
         console.log("Found Claim event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("Claim", event.transactionHash, event.logIndex);
@@ -40,7 +40,7 @@ async function drill() {
     indexer.on("Commit", async (event) => {
         console.log("Found Commit event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("Commit", event.transactionHash, event.logIndex);
@@ -48,7 +48,7 @@ async function drill() {
     indexer.on("CommitWithoutAddress", async (event) => {
         console.log("Found CommitWithoutAddress event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("CommitWithoutAddress", event.transactionHash, event.logIndex);
@@ -56,7 +56,7 @@ async function drill() {
     indexer.on("CreateAccount", async (event) => {
         console.log("Found CreateAccount event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("CreateAccount", event.transactionHash, event.logIndex);
@@ -64,7 +64,7 @@ async function drill() {
     indexer.on("CreateAccountCommit", async (event) => {
         console.log("Found CreateAccountCommit event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("CreateAccountCommit", event.transactionHash, event.logIndex);
@@ -72,7 +72,7 @@ async function drill() {
     indexer.on("CreateBridge", async (event) => {
         console.log("Found CreateBridge event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("CreateBridge", event.transactionHash, event.logIndex);
@@ -80,7 +80,7 @@ async function drill() {
     indexer.on("CreateClaim", async (event) => {
         console.log("Found CreateClaim event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("CreateClaim", event.transactionHash, event.logIndex);
@@ -88,7 +88,7 @@ async function drill() {
     indexer.on("Credit", async (event) => {
         console.log("Found Credit event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("Credit", event.transactionHash, event.logIndex);
@@ -96,7 +96,7 @@ async function drill() {
     indexer.on("OwnershipTransferred", async (event) => {
         console.log("Found OwnershipTransferred event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("OwnershipTransferred", event.transactionHash, event.logIndex);
@@ -104,7 +104,7 @@ async function drill() {
     indexer.on("Paused", async (event) => {
         console.log("Found Paused event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("Paused", event.transactionHash, event.logIndex);
@@ -112,7 +112,7 @@ async function drill() {
     indexer.on("Unpaused", async (event) => {
         console.log("Found Unpaused event");
         await appendFile(
-            "./dif-final-boss.txt",
+            "./bridge-events.txt",
             `${event.event} ${event.transactionHash} ${event.logIndex} ${event.blockNumber} ${JSON.stringify(event)}\n`,
         );
         indexer.eventDone("Unpaused", event.transactionHash, event.logIndex);
