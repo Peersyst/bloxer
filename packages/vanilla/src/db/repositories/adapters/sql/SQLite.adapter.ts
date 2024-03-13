@@ -5,11 +5,10 @@ import { SQLAdapter } from "./SQL.adapter";
  * An SQLite adapter extended from the SQL adapter.
  */
 export class SQLiteAdapter<Entity extends EntityConstructor> extends SQLAdapter<Entity> {
-    valueToSql<T = any>(value: T): string {
-        if (typeof value === "string") return `'${value}'`;
-        else if (value === undefined || value === null) return "NULL";
-        else if (typeof value === "object") return `X'${Buffer.from(JSON.stringify(value), "utf-8").toString("hex")}'`;
-        else return value.toString();
+    valueToSql<T = any>(value: T): any {
+        if (value === undefined || value === null) return null;
+        else if (typeof value === "object") return Buffer.from(JSON.stringify(value), "utf-8");
+        else return value;
     }
 
     sqlToValue<T = any>(sqlValue: any): T {
