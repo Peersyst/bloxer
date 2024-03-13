@@ -14,6 +14,7 @@ import { DB } from "./db/interfaces";
 import { SQLiteDB } from "./db/SQLiteDB";
 import { LastEvent, PendingEvent } from "./db/entities";
 import { Mutex } from "async-mutex";
+import { ListenerWithEventInfo, EventsWithEventInfo, EventInfo } from "./EventInfo";
 
 export abstract class Indexer<Generics extends IndexerGenerics> {
     /**
@@ -81,7 +82,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     /**
      * The event emitter of the indexer.
      */
-    private readonly eventEmitter = new EventEmitter<Generics["events"]>();
+    private readonly eventEmitter = new EventEmitter<EventsWithEventInfo<Generics["events"]>>();
     /**
      * Contains the active event listeners for each event. That is, the subscribed events using the `on` method.
      */
@@ -456,33 +457,33 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      * Creates a pending event if `persist` is true and emits the event.
      * @param event The event to emit.
      */
-    protected notifyEvent<Event extends string & keyof Generics["events"]>({
-        event,
-        hash,
-        i,
-        block,
-        data,
-    }: PendingEvent<Event, Parameters<Generics["events"][Event]>>): void {
-        if (this.activeEventListeners[event]) {
+    protected notifyEvent<Event extends string & keyof Generics["events"]>(
+        pendingEvent: PendingEvent<Event, Parameters<Generics["events"][Event]>>,
+    ): void {
+        if (this.activeEventListeners[pendingEvent.event]) {
             if (this.config.persist) {
                 if (this.reachedLastEvent) {
-                    this.saveNewPendingEvent({ event, hash, i, block, data })
+                    this.saveNewPendingEvent(pendingEvent)
                         .then(() => {
-                            this.emit(event, ...data);
+                            this.emitEvent(pendingEvent);
                         })
                         .catch((e) => {
                             this.logger.error(
-                                `Error while saving new pending event ${event as string} with hash ${hash} and block ${block}: ${e}`,
+                                `Error while saving new pending event ${pendingEvent.event} with hash ${pendingEvent.hash} and block ${pendingEvent.block}: ${e}`,
                             );
                         });
                 } else {
                     // We can assert `this.lastEvent` since it has to be defined for `this.reachedLastEvent` to be false.
-                    if (this.lastEvent!.event === event && this.lastEvent!.hash === hash && (!i || this.lastEvent.i! === i)) {
+                    if (
+                        this.lastEvent!.event === pendingEvent.event &&
+                        this.lastEvent!.hash === pendingEvent.hash &&
+                        (!pendingEvent.i || this.lastEvent.i! === pendingEvent.i)
+                    ) {
                         this.reachedLastEvent = true;
                     }
                 }
             } else {
-                this.emit(event, ...data);
+                this.emitEvent(pendingEvent);
             }
         }
     }
@@ -543,7 +544,7 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
             const pendingEvents = await this.getPendingEvents();
 
             for (const pendingEvent of pendingEvents) {
-                this.emit(pendingEvent.event, ...(pendingEvent.data as Parameters<Generics["events"][string]>));
+                this.emitEvent(pendingEvent);
             }
         }
     }
@@ -569,7 +570,10 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      * @param listener The callback function.
      * @returns A function that removes the listener.
      */
-    on<Event extends keyof Generics["events"]>(event: Event, listener: Generics["events"][Event]): () => void {
+    on<Event extends string & keyof Generics["events"]>(
+        event: Event,
+        listener: ListenerWithEventInfo<Event, Generics["events"][Event]>,
+    ): () => void {
         // Add the event to the active event listeners
         this.activeEventListeners[event] = (this.activeEventListeners[event] ?? 0) + 1;
 
@@ -591,6 +595,20 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
      */
     emit<Event extends keyof Generics["events"]>(event: Event, ...args: Parameters<Generics["events"][Event]>): boolean {
         return this.eventEmitter.emit(event, ...args);
+    }
+
+    /**
+     * Emits an event from a `PendingEvent`.
+     * @param pendingEvent The pending event to emit.
+     * @returns Returns `true` if the event had listeners, `false` otherwise.
+     */
+    emitEvent<Event extends string & keyof Generics["events"]>(pendingEvent: PendingEvent<Event>): boolean {
+        return this.eventEmitter.emit(
+            pendingEvent.event,
+            ...([...pendingEvent.data, EventInfo.fromPendingEvent(pendingEvent)] as Parameters<
+                EventsWithEventInfo<Generics["events"]>[Event]
+            >),
+        );
     }
 
     /**
