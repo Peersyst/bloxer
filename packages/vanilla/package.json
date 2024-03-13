@@ -1,11 +1,11 @@
 {
     "name": "@bloxer/vanilla",
-    "version": "1.0.0-alpha.0",
+    "version": "1.0.0-alpha.1",
     "description": "Lightweight and simple blockchain indexer framework based on custom events.",
     "private": false,
     "main": "src/index.ts",
     "scripts": {
-        "build": "node ../../scripts/build.js",
+        "build": "node ../../scripts/build.js ./src/db/migrations",
         "clean": "rm -rf dist"
     },
     "author": "Peersyst",

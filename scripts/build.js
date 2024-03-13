@@ -6,7 +6,9 @@ const fse = require("fs-extra");
 const packagePath = process.cwd();
 const buildPackagePath = (file) => path.join(packagePath, file);
 const distPath = path.join(packagePath, "./dist");
-const buildDistPath = (file) => path.join(distPath, file);
+const buildDistPath = (file) => path.join(distPath, file.replace("src", "lib"));
+
+const extraFiles = process.argv.slice(2);
 
 function main() {
     try {
@@ -28,6 +30,10 @@ function main() {
         fse.copySync(buildPackagePath("./LICENSE"), buildDistPath("./LICENSE"));
 
         execSync("tsc");
+
+        for (const file of extraFiles) {
+            fse.copySync(buildPackagePath(file), buildDistPath(file));
+        }
     } catch (e) {
         console.error(e);
         process.exit(1);
