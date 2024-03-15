@@ -130,12 +130,12 @@ export abstract class Indexer<Generics extends IndexerGenerics> {
     /**
      * The last event processed before the indexer is started.
      */
-    lastEvent: LastEvent | undefined;
+    private lastEvent: LastEvent | undefined;
 
     /**
      * Whether the last event has been reached and new events can be processed.
      */
-    reachedLastEvent = false;
+    private reachedLastEvent = false;
 
     /**
      * Requests the provider with retries
